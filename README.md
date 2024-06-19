@@ -34,7 +34,7 @@
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Huawei Parkinson Disease Detection</h3>
+<h3 align="center">Huawei Parkinson Disease Analysis & Detection</h3>
 
   <p align="center">
   This is a Parkinson Disease analysis library with Huawei smart watch devices by detecting the patient's specific activities.
@@ -107,6 +107,7 @@ To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
+### `PyENV` installation
 This is an example of how to list things you need to use the software and how to install them.
 * `pyenv` is an exceptionally versatile tool designed to handle multiple Python versions on a single machine. It simplifies the process of switching between various Python versions, making it an ideal choice for projects with specific version needs. This feature is incredibly beneficial in development settings where testing and compatibility with multiple Python versions are critical.
 
@@ -165,6 +166,66 @@ This is an example of how to list things you need to use the software and how to
    ```sh
    pip install -r requirements.txt
    ```
+
+
+
+### `Rclone` installation
+
+Rclone is a command-line program to manage files on cloud storage. We use this program to sync our data in `./input` and `./output` folder to/from AWS s3 cloud storage.
+</p>
+
+`Beware: if you update the folder you were not supposed to work on, there is a possibility that you may delete or update your peer colleagues' data, make sure if you are updating the data folder you work on`
+
+I have created a few Make command so that you only update the specific folders such as `activity`, `feature/extraction`, `feature/selection`.
+
+
+1. Install `Rclone`
+
+  To install rclone on Linux/macOS/BSD systems, run:
+
+  ```sh
+  sudo -v ; curl https://rclone.org/install.sh | sudo bash
+  ```
+
+  To install rclone on Windows, go to below page to download executable. </p>
+  https://rclone.org/install/
+
+2. Configure `Rclone`
+  You dont need to do anything, no matter which OS you work on, because I have prepare the rclone configuration file in this project, it is located at ./rclone.conf, and it has AWS secret, please use it accordingly without sharing them with others.
+
+
+3. Practise the data sync between your local PC and remote AWS S3 storage. Please copy your most updated data into the project `input` and `output` folder accordingly and use the commands below in your project directory.
+
+  To sync the activity  input data
+  ```sh
+  make sync-input-activity-data
+  ```
+
+  To sync the activity output data
+  ```sh
+  make sync-output-activity-data
+  ```
+
+  To sync the feature extraction input data
+  ```sh
+  make sync-input-feature-extraction-data
+  ```
+
+  To sync the feature extraction output data
+  ```sh
+  make sync-output-feature-extraction-data
+  ```
+
+  To sync the feature selection input data
+  ```sh
+  make sync-input-feature-selection-data
+  ```
+
+  To sync the feature selectio output data
+  ```sh
+  make sync-output-feature-selection-data
+  ```
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
