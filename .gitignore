@@ -1,5 +1,10 @@
 **/.DS_Store
 
+# 0706User-specific stuff
+/.idea/
+input/
+output/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
