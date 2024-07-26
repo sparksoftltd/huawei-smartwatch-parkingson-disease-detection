@@ -30,7 +30,7 @@ now = datetime.datetime.now()
 month_day = now.strftime("%m%d")  # 月和日格式为"MMdd"，例如"0509"
 # 设置日志的配置，美包含INFO标签
 logging.basicConfig(
-    filename=rf"../../../output/activity/step_7_ac_cv5/{month_day}_model_training_ac.log",
+    filename=rf"../../../output/activity/step_7_comb_cv5/{month_day}_model_training_ac.log",
     level=logging.INFO,
     format='%(message)s',
     filemode='a'
@@ -382,7 +382,7 @@ class PDClassifier:
         # current_directory = os.path.dirname(os.path.abspath(__file__))
         # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', file_path)
         # file_path = os.path.join(r'../../../output/activity/step_7_five_fold_cross_validation_activity_combination', file_path)
-        file_path = os.path.join(r'../../../output/activity/step_7_ac_cv5', file_path)
+        file_path = os.path.join(r'../../../output/activity/step_7_comb_cv5', file_path)
         # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', '123.csv')
 
         try:
@@ -680,7 +680,7 @@ if __name__ == '__main__':
     classifier_range = ['rf', 'xgb', 'lgbm', 'logistic_l1', 'logistic_l2', 'svm_l1', 'svm_l2', 'knn', 'bayes',
                         'mlp_2', 'mlp_4', 'mlp_8']
     for activity_id in tqdm(activity_range):
-        classifier = PDClassifier(r"../../../output/activity/step_6_ac/9+11_None_h.csv", "9+11",
+        classifier = PDClassifier(r"../../../output/activity/step_6_comb/9+11_None_h.csv", "9+11",
                                   r'../../../input/activity/step_3_output_feature_importance/folds.csv')  # 初始化PDClassifier分类器
 
         for model_name in classifier_range:  # 12种分类器，传入名称选择合适分类器即可

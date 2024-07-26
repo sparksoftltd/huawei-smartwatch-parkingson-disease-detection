@@ -14,7 +14,7 @@ import itertools
 # - data_path: 字符串，CSV 数据文件的路径
 # - sequence: 列表，活动 ID 的序列，要求每个元素是整数
 
-# - scheme: 整数，组合方案类型，0 表示水平拼接，1 表示垂直拼接，2 表示融合
+# - scheme: 整数，组合方案类型，0 表示垂直拼接，1 表示水平拼接，2 表示融合
 #   scheme=0 垂直拼接，数据按照垂直方向，将活动数据按sequence次序垂直排列，先排列sequence[i]的全部数据，再排列sequence[i+1]的全部数据。
 #   scheme=1 水平拼接，将按照sequence次序水平拼接，因为不同活动的执行时间不一样，可能出现水平上的NaN值。
 #   scheme=2 数据融合，将活动数据按sequence次序，按照sequence[i]对应的活动数据*wights[i]+sequence[i+1]*wights[i+1]融合全部数据，
@@ -144,7 +144,7 @@ class ActivityCombinationPreprocessor:
         # 更改指定列的列名
         data = data.rename(columns={"subject_id": "PatientID", "severity_level": "Severity_Level"})
         # file_path = fr"../../../output/activity/step_6_activity_combination/{filename}"
-        file_path = fr"../../../output/activity/step_6_ac/{filename}"
+        file_path = fr"../../../output/activity/step_6_comb/{filename}"
         # data.to_csv(filename, index=False)
         data.to_csv(file_path, index=False)
 
@@ -185,6 +185,8 @@ class ActivityCombinationPreprocessor:
                 # 截取所有行（实例）
                 activity_data = group[group['Activity_id'] == activity_id].iloc[:, :-3].reset_index(
                     drop=True)
+                if activity_data.empty:
+                    return pd.DataFrame()
             # 拼接方向为self._scheme， 0表示纵向垂直拼接， 1表示横向水平拼接
             personal_combined_data = pd.concat([personal_combined_data, activity_data], axis=self._scheme,
                                                ignore_index=True)
@@ -220,7 +222,8 @@ class ActivityCombinationPreprocessor:
                 activity_data = group[group['Activity_id'] == activity_id].iloc[:, :-3].reset_index(
                     drop=True)
             if activity_data.empty:
-                break  # 如果为空，停止循环，表示如果该受试者进行数据融合时，出现部分活动数据确实，放弃执行该受试者的数据融合。
+                return pd.DataFrame()
+                # break  # 如果为空，停止循环，表示如果该受试者进行数据融合时，出现部分活动数据确实，放弃执行该受试者的数据融合。
             if personal_fused_data.empty:
                 personal_fused_data = weight * activity_data  # 第一次执行时初始化融合
             else:
