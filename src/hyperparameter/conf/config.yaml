@@ -1,0 +1,21 @@
+defaults:
+  - model: lgbm  # 引用模型参数配置文件
+  - _self_
+
+dataset:
+  default:
+    data_path: "../../output/activity/step_2_select_sensors"
+    data_name: "acc_data.csv"
+    fold_groups_path: "../../input/activity/step_3_output_feature_importance"
+    fold_groups_name: "fold_groups_new_with_combinations.csv"
+    activity_id: 3
+    severity_mapping: {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+
+optuna:
+  n_trials: 50
+  timeout: 600  # 超参数优化的超时时间（秒）
+  direction: "maximize"
+  storage: "sqlite:///optuna.db"
+
+seed: 0  # 添加seed配置
+expname: "activity 3 on lgbm"

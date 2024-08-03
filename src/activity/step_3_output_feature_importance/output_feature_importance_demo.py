@@ -248,7 +248,7 @@ class PDClassifier:
             # 将当前病人级别的预测标签和真实标签记录
             total_pred_group_ls.append(y_pred_ls)
             total_test_Y_group_ls.append(test_Y_ls)
-            # print('F1 score:', f1_score(test_Y_ls, y_pred_ls, zero_division=0, average='macro'))
+            print('F1 score:', f1_score(test_Y_ls, y_pred_ls, zero_division=0, average='macro'))
         return shap_values_fold, new_test_X_fold
 
     # 制造五折交叉验证数据集
@@ -509,8 +509,8 @@ def single_activity_shap_importance(activity_id, model='lgbm'):
 
 if __name__ == '__main__':
     # 测试单个活动
-    # single_activity_shap_importance(3, 'lgbm')
+    single_activity_shap_importance(3, 'lgbm')
 
-    # 测试多个活动
-    for activity_id in range(1, 16 + 1):
-        single_activity_shap_importance(activity_id, 'lgbm')
+    # # 测试多个活动
+    # for activity_id in range(1, 16 + 1):
+    #     single_activity_shap_importance(activity_id, 'lgbm')
