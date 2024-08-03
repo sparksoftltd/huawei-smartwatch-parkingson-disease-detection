@@ -146,7 +146,7 @@ def FeatureExtractWithProcess(pd_num, activity_num, data_path, side, fea_column,
     for pdn in range(1, pd_num + 1, 1):
         for acn in range(1, activity_num + 1, 1):
             # select one side data
-            filefullpath = data_path + r"\person{}/{}_session{}_{}.csv".format(pdn, pdn, acn, side)
+            filefullpath = data_path + r"person{}/{}_session{}_{}.csv".format(pdn, pdn, acn, side)
             if not os.path.exists(filefullpath):
                 continue
             data = pd.read_csv(filefullpath, header=0)

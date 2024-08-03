@@ -1,6 +1,7 @@
 import sys
 import shap
 import lightgbm as lgb
+from lightgbm import log_evaluation, early_stopping
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -12,12 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 import numpy as np
-import pandas as pd
-import logging
 from tqdm import tqdm
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import PredefinedSplit, GridSearchCV
-import csv
 import os
 import pandas as pd
 import json
@@ -26,11 +22,12 @@ import json
 class PDClassifier:
     def __init__(self, data_path, activity_id, fold_groups_path, severity_mapping=None):
         if severity_mapping is None:
-            severity_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 4}  # 映射关系
+            severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}  # 映射关系
         self.data_path = data_path  # 手工特征文件路径
         self.activity_id = activity_id  # 从手工特征文件中选取指定activity_id对应的数据
         self.severity_mapping = severity_mapping  # 映射关系
         self.PD_data = self.load_and_preprocess_data()  # 预处理数据文件
+        self.feature_name = self.PD_data.columns[:-3]
 
         self.fold_groups = self.process_fold_groups(fold_groups_path)
         self.bag_data_dict, self.patient_ids, self.fold_groups = self.group_data(self.fold_groups)  # 组织数据
@@ -44,9 +41,13 @@ class PDClassifier:
         list: 处理后的fold_group_ls列表
         """
         # 读取CSV文件
-        data = pd.read_csv(csv_file_path)
+        try:
+            data = pd.read_csv(csv_file_path)
+        except FileNotFoundError as e:
+            print(f"Error: {e}")
+            return []
         data['activity_label'] = data['activity_label'].astype(str)
-        # 筛选出activity_label为3的行
+        # 筛选活动 activity_id 的患者数据
         filtered_data = data[data['activity_label'] == str(self.activity_id)]
         # 准备一个空列表来收集所有组的数据
         fold_groups = []
@@ -74,9 +75,9 @@ class PDClassifier:
                 raise AssertionError(f"activity_id {self.activity_id} is not in the range 1 to 16.")
         except ValueError:
             pass
-        print(f"data:{data}, activity_id: {self.activity_id}")
+        print(f"Loading data of activity_id: {self.activity_id}")
         data['Severity_Level'] = data['Severity_Level'].map(self.severity_mapping)
-        data.dropna(inplace=True)
+        data = data.dropna()
         # ============================标准化=====================================
         # 获取 'Severity_Level' 列之前的所有列名
         numerical_columns = data.columns[:-3]
@@ -152,8 +153,8 @@ class PDClassifier:
 
     # 训练和测试数据集
     def train_and_evaluate(self, classifier):
-        total_pred_group_ls = []  # 记录每次留一验证的预测的病人病情标签
-        total_test_Y_group_ls = []  # 记录每次留一验证的真实的病人病情标签
+        total_pred_group_ls = []  # 记录预测的病人病情标签
+        total_test_Y_group_ls = []  # 记录真实的病人病情标签
         params = None  # 记录当前classifier使用的参数
         id_records_for_each_fold_dict = dict()
         # 遍历bag_data_list, 按病人为预测单位进行留一验证
@@ -161,10 +162,13 @@ class PDClassifier:
         # =============shap=========================
         # 初始化数组以聚合SHAP值
         # shap_values_aggregated = np.zeros(220)
-        shap_values_aggregated = np.zeros(self.bag_data_dict[self.patient_ids[0]]["bag_data"].shape[1])
+        shap_values_aggregated = np.zeros((self.bag_data_dict[self.patient_ids[0]]["bag_data"].shape[1],
+                                           len(set(self.severity_mapping.values()))))
         test_samples_num = 0
+        shap_values_fold = list()  # 保存每一折的shap value
+        new_test_X_fold = list()   # 保存每一折使用的测试，用于可视化shap value
         # =============shap=========================
-        for fold_num, test_ids in tqdm(enumerate(self.fold_groups)):  # 遍历每个fold
+        for fold_num, test_ids in enumerate(self.fold_groups):  # 遍历每个fold
             # train_X, train_Y, test_X, test_Y = self.create_train_test_split(selected_group)  # 获取当前留一验证的数据集
             train_X, train_Y, test_X_ls, test_Y_ls, train_ids, test_ids = self.create_train_test_split(fold_num,
                                                                                                        test_ids)  # 获取当前交叉验证的数据集
@@ -191,26 +195,27 @@ class PDClassifier:
                 # ================================================
                 lgb_test = lgb.Dataset(new_test_X, new_test_Y, reference=lgb_train)  # 二维test_X，一维test_Y
                 num_round = 500  # 训练的总轮数，即总共要训练多少棵树
-                early_stopping_rounds = 50
                 # Train the model
                 _, cur_classifier_params = self.create_model(classifier)
                 if params is None:
                     params = cur_classifier_params
-                # print(lgb_params)
                 model = lgb.train(cur_classifier_params, lgb_train, num_boost_round=num_round,
                                   valid_sets=[lgb_train, lgb_test],
-                                  early_stopping_rounds=early_stopping_rounds, verbose_eval=False)
-
+                                  callbacks=[early_stopping(stopping_rounds=50)])
                 # ===================shap====================================================
+                # 进行预测
+                y_pred_ls = self.predict_most_likely_class(model, test_X_ls, classifier)
+
                 # 使用SHAP解释模型预测
                 explainer = shap.TreeExplainer(model)
                 shap_values = explainer.shap_values(new_test_X)
                 test_samples_num += new_test_X.shape[0]
                 # 累积绝对SHAP值以计算特征重要性
-                for shap_value in shap_values:
-                    shap_values_aggregated += np.abs(shap_value).sum(axis=0)
+                # shap_values_aggregated += np.abs(shap_values).sum(axis=0)
+                # 特征可视化
+                shap_values_fold.append(shap_values)
+                new_test_X_fold.append(new_test_X)
                 # ===================shap====================================================
-
             elif classifier == 'xgb':
                 # Create DMatrix for XGBoost
                 xgb_train = xgb.DMatrix(train_X, label=train_Y)
@@ -240,89 +245,34 @@ class PDClassifier:
                 model.fit(train_X, train_Y)
             # 使用训练好的模型，进行测试
             y_pred_ls = self.predict_most_likely_class(model, test_X_ls, classifier)
-            # 将当前留一验证的病人级别的预测标签和真实标签记录
+            # 将当前病人级别的预测标签和真实标签记录
             total_pred_group_ls.append(y_pred_ls)
             total_test_Y_group_ls.append(test_Y_ls)
-        # =========================shap=================
-        # 计算交叉验证中的平均SHAP值
-        shap_values_mean = shap_values_aggregated / test_samples_num
-        # 创建DataFrame保存特征重要性
-        shap_summary = pd.DataFrame({
-            'Feature': self.PD_data.columns[:-3],
-            'SHAP Importance': shap_values_mean
-        }).sort_values(by='SHAP Importance', ascending=False)
-        # 将SHAP值保存到CSV文件
-        shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance' ,
-            f'{os.path.basename(self.data_path)}_{self.activity_id}_shap_importance.csv'), index=False
-        )
-        # 输出特征重要性
-        print(shap_summary)
+            # print('F1 score:', f1_score(test_Y_ls, y_pred_ls, zero_division=0, average='macro'))
         # =========================shap=================
 
-    # # @staticmethod
-    # def append_results_to_csv(self, activity_id, classifier, acc_ls, precision_ls, recall_ls, f1_ls):
-    #     file_path = f'{self.data_path}_result.csv'
-    #     header = ['activity_id', 'classifier',
-    #               'acc_avg', 'precision_avg', 'recall_avg', 'f1_avg',
-    #               'acc_fold_1', 'precision_fold_1', 'recall_fold_1', 'f1_fold_1',
-    #               'acc_fold_2', 'precision_fold_2', 'recall_fold_2', 'f1_fold_2',
-    #               'acc_fold_3', 'precision_fold_3', 'recall_fold_3', 'f1_fold_3',
-    #               'acc_fold_4', 'precision_fold_4', 'recall_fold_4', 'f1_fold_4',
-    #               'acc_fold_5', 'precision_fold_5', 'recall_fold_5', 'f1_fold_5',
-    #               ]
-    #
-    #     # 组合每一折的结果到一个列表中
-    #     combined_results_row = []
-    #     combined_results_row.extend([activity_id, classifier])
-    #     # 追加平均结果、和总的结果的report
-    #     for i in [-1, 0, 1, 2, 3, 4]:
-    #         if i == -1:
-    #             # 计算每个指标的均值
-    #             mean_acc = round(np.mean(acc_ls), 4)
-    #             mean_precision = round(np.mean(precision_ls), 4)
-    #             mean_recall = round(np.mean(recall_ls), 4)
-    #             mean_f1 = round(np.mean(f1_ls), 4)
-    #             # ============================================================
-    #             # 计算标准差
-    #             std_acc = round(np.std(acc_ls), 4)
-    #             std_precision = round(np.std(precision_ls), 4)
-    #             std_recall = round(np.std(recall_ls), 4)
-    #             std_f1 = round(np.std(f1_ls), 4)
-    #             # ============================================================
-    #
-    #             combined_results_row.extend([
-    #                 f"{mean_acc} ± {std_acc}",
-    #                 f"{mean_precision} ± {std_precision}",
-    #                 f"{mean_recall} ± {std_recall}",
-    #                 f"{mean_f1} ± {std_f1}"
-    #             ])
-    #             # combined_results_row.extend([
-    #             #     mean_acc, mean_precision, mean_recall, mean_f1
-    #             # ])
-    #             continue
-    #         combined_results_row.extend([
-    #             acc_ls[i], precision_ls[i], recall_ls[i], f1_ls[i]
-    #         ])
-    #     # # 追加平均结果、和总的结果的report
-    #     # combined_results_row
-    #     # 获取当前脚本文件所在目录
-    #     current_directory = os.path.dirname(os.path.abspath(__file__))
-    #     file_path = os.path.join(current_directory, file_path)
-    #
-    #     try:
-    #         # 尝试打开文件，如果文件不存在则创建并写入表头
-    #         with open(file_path, 'x', newline='') as csvfile:
-    #             csvwriter = csv.writer(csvfile)
-    #             csvwriter.writerow(header)
-    #     except FileExistsError:
-    #         # 如果文件已经存在则跳过写入表头
-    #         pass
-    #
-    #     # 追加数据到CSV文件
-    #     with open(file_path, 'a', newline='') as csvfile:
-    #         csvwriter = csv.writer(csvfile)
-    #         csvwriter.writerow(combined_results_row)
-    #     print(f"Results have been appended to {file_path}")
+        shap_values_all_fold = np.vstack(shap_values_fold)  # 堆叠
+        shap_values_mean = np.mean(shap_values_all_fold, axis=2)  # 计算所有类的shap均值
+        # 可视化
+        # shap.summary_plot(shap_values_mean, np.vstack(new_test_X_fold), feature_names=self.feature_name)
+
+        # 获取类数
+        num_columns = shap_values_all_fold.shape[2]
+        # 生成列名
+        column_names = [f"class_{i}" for i in range(num_columns)]
+        # 取abs,消除正负影响
+        shap_values_class_mean = np.abs(shap_values_all_fold).mean(axis=0)
+        shap_summary = pd.DataFrame(shap_values_class_mean, columns=column_names)
+        shap_summary['shap_values_mean'] = shap_values_class_mean.mean(axis=1)
+        # 将特征名称作为第一列
+        shap_summary.insert(0, 'feature name', self.feature_name)
+        shap_summary = shap_summary.sort_values(by='shap_values_mean', ascending=False)
+        # 将SHAP值保存到CSV文件
+        shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance',
+                                         f'{os.path.basename(self.data_path)}_{self.activity_id}_shap_importance.csv'),
+                            index=False
+                            )
+        # =========================shap=================
 
     # 制造五折交叉验证数据集
     def create_train_test_split(self, fold_num, test_ids):
@@ -552,10 +502,16 @@ class PDClassifier:
 
 
 if __name__ == '__main__':
+    # classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", 3,
+    #                           r'../../../input/activity/step_3_output_feature_importance'
+    #                           r'/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
+    # classifier.train_and_evaluate(classifier='lgbm')  # 选择对应的model进行留一验证
+
     activity_range = list(range(1, 17))  # 16个活动
-    classifier_range = ['lgbm', ]
-    for activity_id in tqdm(activity_range):
+    classifier_range = ['lgbm' ]
+    for activity_id in activity_range:
         classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", activity_id,
-                                  r'../../../input/activity/step_2_select_sensors/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
+                                  r'../../../input/activity/step_3_output_feature_importance'
+                                  r'/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
         for model_name in classifier_range:  # 12种分类器，传入名称选择合适分类器即可
             classifier.train_and_evaluate(classifier=model_name)  # 选择对应的model进行留一验证

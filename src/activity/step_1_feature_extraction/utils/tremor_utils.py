@@ -79,7 +79,7 @@ def envelope_extraction(signal):
     l_x = [0,] #下包络的x序列
     l_y = [s[0],] #下包络的y序列
 
-    # 检测波峰和波谷，并分别标记它们在u_x,u_y,l_x,l_中的位置。 
+    # 检测波峰和波谷，并分别标记它们在u_x,u_y,l_x,l_中的位置。
     #Detect peaks and troughs and mark their location in u_x,u_y,l_x,l_y respectively.
 
     for k in range(1,len(s)-1):
@@ -164,7 +164,7 @@ def fft_peak_xy(data,N,fs,peak_num=2):
     mph = signal_min + (signal_max - signal_min) / len(fft_values)  # set minimum peak height
     peaks, _ = find_peaks(fft_values, prominence=mph)
     peak_save = fft_values[peaks].argsort()[::-1][:peak_num]
-    temp_arr = f_values[peaks[peak_save]] 
+    temp_arr = f_values[peaks[peak_save]]
     fft_peak_xy = np.pad(temp_arr, (0, peak_num - len(temp_arr)), 'constant', constant_values=0)  ## (0, pad_len), 前面填充0个0，后面填充pad_len个0
     return fft_peak_xy
 
@@ -258,7 +258,7 @@ def autocorr_domain(data,N,fs):  ##自相关图峰值细节
     peaks, _ = find_peaks(autocorr_values, prominence=mph)
 
     peak_save = autocorr_values[peaks].argsort()[::-1][:2]
-    peak_x = a_values[peaks[peak_save]]  
+    peak_x = a_values[peaks[peak_save]]
     peak_y = autocorr_values[peaks[peak_save]]
     peak_x = np.pad(peak_x, (0, 2 - len(peak_x)), 'constant', constant_values=0)
     peak_y = np.pad(peak_y, (0, 2 - len(peak_y)), 'constant', constant_values=0)
