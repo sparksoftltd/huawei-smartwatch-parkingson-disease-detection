@@ -394,7 +394,7 @@ class PDClassifier:
                 'seed': 0,
                 'num_threads': -1,
                 'verbose': -1,
-                # 'early_stopping_rounds': 50,  # 当验证集在训练一百次过后准确率还没提升的时候停止
+                # 'early_stopping_rounds': 50,  # 当验证集在训练一百次过后准确率还没提升的时候停止ss
                 'num_leaves': 128,
             }
             params = lgb_params
