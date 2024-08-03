@@ -166,7 +166,7 @@ class PDClassifier:
                                            len(set(self.severity_mapping.values()))))
         test_samples_num = 0
         shap_values_fold = list()  # 保存每一折的shap value
-        new_test_X_fold = list()   # 保存每一折使用的测试，用于可视化shap value
+        new_test_X_fold = list()  # 保存每一折使用的测试，用于可视化shap value
         # =============shap=========================
         for fold_num, test_ids in enumerate(self.fold_groups):  # 遍历每个fold
             # train_X, train_Y, test_X, test_Y = self.create_train_test_split(selected_group)  # 获取当前留一验证的数据集
@@ -249,30 +249,7 @@ class PDClassifier:
             total_pred_group_ls.append(y_pred_ls)
             total_test_Y_group_ls.append(test_Y_ls)
             # print('F1 score:', f1_score(test_Y_ls, y_pred_ls, zero_division=0, average='macro'))
-        # =========================shap=================
-
-        shap_values_all_fold = np.vstack(shap_values_fold)  # 堆叠
-        shap_values_mean = np.mean(shap_values_all_fold, axis=2)  # 计算所有类的shap均值
-        # 可视化
-        # shap.summary_plot(shap_values_mean, np.vstack(new_test_X_fold), feature_names=self.feature_name)
-
-        # 获取类数
-        num_columns = shap_values_all_fold.shape[2]
-        # 生成列名
-        column_names = [f"class_{i}" for i in range(num_columns)]
-        # 取abs,消除正负影响
-        shap_values_class_mean = np.abs(shap_values_all_fold).mean(axis=0)
-        shap_summary = pd.DataFrame(shap_values_class_mean, columns=column_names)
-        shap_summary['shap_values_mean'] = shap_values_class_mean.mean(axis=1)
-        # 将特征名称作为第一列
-        shap_summary.insert(0, 'feature name', self.feature_name)
-        shap_summary = shap_summary.sort_values(by='shap_values_mean', ascending=False)
-        # 将SHAP值保存到CSV文件
-        shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance',
-                                         f'{os.path.basename(self.data_path)}_{self.activity_id}_shap_importance.csv'),
-                            index=False
-                            )
-        # =========================shap=================
+        return shap_values_fold, new_test_X_fold
 
     # 制造五折交叉验证数据集
     def create_train_test_split(self, fold_num, test_ids):
@@ -501,17 +478,39 @@ class PDClassifier:
         return y_pred_ls
 
 
-if __name__ == '__main__':
-    # classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", 3,
-    #                           r'../../../input/activity/step_3_output_feature_importance'
-    #                           r'/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
-    # classifier.train_and_evaluate(classifier='lgbm')  # 选择对应的model进行留一验证
+def single_activity_shap_importance(activity_id, model='lgbm'):
+    classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", activity_id,
+                              r'../../../input/activity/step_3_output_feature_importance'
+                              r'/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
+    shap_values_fold, new_test_X_fold = classifier.train_and_evaluate(classifier=model)  # 选择对应的model
+    shap_values_all_fold = np.vstack(shap_values_fold)  # 堆叠
+    # 可视化
+    shap_values_mean = np.mean(shap_values_all_fold, axis=2)  # 计算所有类的shap均值
+    shap.summary_plot(shap_values_mean, np.vstack(new_test_X_fold), feature_names=classifier.feature_name)
 
-    activity_range = list(range(1, 17))  # 16个活动
-    classifier_range = ['lgbm' ]
-    for activity_id in activity_range:
-        classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", activity_id,
-                                  r'../../../input/activity/step_3_output_feature_importance'
-                                  r'/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
-        for model_name in classifier_range:  # 12种分类器，传入名称选择合适分类器即可
-            classifier.train_and_evaluate(classifier=model_name)  # 选择对应的model进行留一验证
+    # 获取类数
+    num_columns = shap_values_all_fold.shape[2]
+    # 生成列名
+    column_names = [f"class_{i}" for i in range(num_columns)]
+    # 取abs,消除正负影响
+    shap_values_class_mean = np.abs(shap_values_all_fold).mean(axis=0)
+    shap_summary = pd.DataFrame(shap_values_class_mean, columns=column_names)
+    shap_summary['shap_values_mean'] = shap_values_class_mean.mean(axis=1)
+    # 将特征名称作为第一列
+    shap_summary.insert(0, 'feature name', classifier.feature_name)
+    shap_summary = shap_summary.sort_values(by='shap_values_mean', ascending=False)
+    # 将SHAP值保存到CSV文件
+    shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance',
+                                     f'{os.path.basename(classifier.data_path)}_{classifier.activity_id}_shap_importance.csv'),
+                        index=False)
+
+    return
+
+
+if __name__ == '__main__':
+    # 测试单个活动
+    # single_activity_shap_importance(3, 'lgbm')
+
+    # 测试多个活动
+    for activity_id in range(1, 16 + 1):
+        single_activity_shap_importance(activity_id, 'lgbm')
