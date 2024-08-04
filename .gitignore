@@ -1,5 +1,8 @@
 **/.DS_Store
 
+# Xulong need
+hyperparameter/outputs/
+optuna.db
 # 0706User-specific stuff
 /.idea/
 input/
