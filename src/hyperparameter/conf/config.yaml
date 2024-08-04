@@ -17,5 +17,5 @@ optuna:
   direction: "maximize"
   storage: "sqlite:///optuna.db"
 
-seed: 0  # 添加seed配置
-expname: "activity 3 on lgbm"
+seed: 0
+expname: "Activity3_${now:%Y%m%d%H%M%S}"

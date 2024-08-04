@@ -4,19 +4,33 @@ params:
   metric: "multi_logloss"
   verbosity: -1
   boosting_type: "gbdt"
-  num_leaves:
-    low: 20
-    high: 50
+# 控制树结构的超参数
+  max_depth:
+    low: 3
+    high: 8
+# 提高准确性的超参数
   learning_rate:
     low: 1e-3
     high: 0.3
     log: true
+  max_bin:
+    low: 255
+    high: 500
+#更多超参数来控制过拟合
+  lambda_l1:
+    low: 0
+    high: 100
+  lambda_l2:
+    low: 0
+    high: 100
+  min_gain_to_split:
+    low: 0
+    high: 20
   feature_fraction:
     low: 0.7
     high: 1.0
   bagging_fraction:
     low: 0.7
     high: 1.0
-  bagging_freq:
-    low: 1
-    high: 7
+
+
