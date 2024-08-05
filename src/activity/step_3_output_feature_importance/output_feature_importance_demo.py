@@ -509,7 +509,7 @@ def single_activity_shap_importance(activity_id, model='lgbm'):
 
 if __name__ == '__main__':
     # 测试单个活动
-    single_activity_shap_importance(3, 'lgbm')
+    single_activity_shap_importance(1, 'lgbm')
 
     # # 测试多个活动
     # for activity_id in range(1, 16 + 1):
