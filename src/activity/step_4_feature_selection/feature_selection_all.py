@@ -5,114 +5,53 @@ import lightgbm as lgb
 from src.utils.PDDataLoader import PDDataLoader
 from sklearn.metrics import f1_score
 from autofeatselect import AutoFeatureSelect
+from src.utils import set_seed
+
+seed = set_seed(0)
 
 
 class FeatureSelector:
-    def __init__(self, data):
+    def __init__(self, activity_id, data, target):
+        self.activity_id = activity_id
         self.data = data
-        self.correlation_threshold = None
-        self.one_hot_correlated = False
-        self.base_features = data.columns.tolist()
-        self.one_hot_features = []
-        self.corr_matrix = None
-        self.record_collinear = pd.DataFrame()
-        self.ops = {'collinear': []}
+        self.target = target,
+        self.features = data.columns
+        self.missing_threshold = 0.6
+        self.low_importance_threshold = 0.01
 
-    def identify_collinear(self, correlation_threshold, one_hot=False):
-        """
-        Finds collinear features based on the correlation coefficient between features.
-        For each pair of features with a correlation coefficient greater than `correlation_threshold`,
-        only one of the pair is identified for removal.
+    # def identify_zero_importance(self):
+    #     model = RandomForestClassifier(n_estimators=100, random_state=0)
+    #     model.fit(self.data, self.target)
+    #     importances = model.feature_importances_
+    #     self.zero_importance_features = [self.features[i] for i in range(len(importances)) if importances[i] == 0]
+    #     print(f"Identified {len(self.zero_importance_features)} features with zero importance in tree-based model.")
+    #     return self.zero_importance_features
+    #
+    # def identify_low_importance(self):
+    #     model = RandomForestClassifier(n_estimators=100, random_state=0)
+    #     model.fit(self.data, self.target)
+    #     importances = model.feature_importances_
+    #     self.low_importance_features = [self.features[i] for i in range(len(importances)) if
+    #                                     importances[i] < self.low_importance_threshold]
+    #     print(
+    #         f"Identified {len(self.low_importance_features)} features with importance < {self.low_importance_threshold}.")
+    #     return self.low_importance_features
 
-        Parameters
-        --------
-        correlation_threshold : float between 0 and 1
-            Value of the Pearson correlation coefficient for identifying correlation features
-
-        one_hot : boolean, default = False
-            Whether to one-hot encode the features before calculating the correlation coefficients
-        """
-
-        self.correlation_threshold = correlation_threshold
-        self.one_hot_correlated = one_hot
-
-        # Calculate the correlations between every column
-        if one_hot:
-            # One hot encoding
-            features = pd.get_dummies(self.data)
-            self.one_hot_features = [column for column in features.columns if column not in self.base_features]
-
-            # Add one hot encoded data to original data
-            self.data_all = pd.concat([features[self.one_hot_features], self.data], axis=1)
-
-            corr_matrix = features.corr()
-
-        else:
-            corr_matrix = self.data.corr()
-
-        self.corr_matrix = corr_matrix
-
-        # Extract the upper triangle of the correlation matrix
-        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-
-        # Select the features with correlations above the threshold
-        to_drop = [column for column in upper.columns if any(upper[column].abs() > correlation_threshold)]
-
-        # Dataframe to hold correlated pairs
-        record_collinear = []
-
-        # Iterate through the columns to drop to record pairs of correlated features
-        for column in to_drop:
-            # Find the correlated features
-            corr_features = list(upper.index[upper[column].abs() > correlation_threshold])
-
-            # Find the correlated values
-            corr_values = list(upper[column][upper[column].abs() > correlation_threshold])
-            drop_features = [column for _ in range(len(corr_features))]
-
-            # Record the information (need a temp df for now)
-            temp_df = pd.DataFrame.from_dict({'drop_feature': drop_features,
-                                              'corr_feature': corr_features,
-                                              'corr_value': corr_values})
-
-            # Add to list if temp_df is not empty and has no all-NA columns
-            if not temp_df.empty and temp_df.notna().any().any():
-                record_collinear.append(temp_df)
-
-        # Concatenate all the dataframes in the list
-        if record_collinear:
-            self.record_collinear = pd.concat(record_collinear, ignore_index=True)
-        else:
-            self.record_collinear = pd.DataFrame(columns=['drop_feature', 'corr_feature', 'corr_value'])
-
-        self.ops['collinear'] = to_drop
-
-        print('%d features with a correlation magnitude greater than %0.2f.\n' % (
-            len(self.ops['collinear']), self.correlation_threshold))
-
-        return self.ops['collinear']
+    def remove_features(self):
+        self.data = self.data.drop(
+            columns=self.single_unique_features + self.zero_importance_features + self.low_importance_features)
+        print(f"Removed features. Remaining features: {self.data.shape[1]}")
+        return self.data
 
 
-def check_features(activity_id):
-    data_path = "../../../output/activity/step_2_select_sensors"
-    data_name = "acc_data.csv"
-    fold_groups_path = "../../../input/activity/step_3_output_feature_importance"
-    fold_groups_name = "fold_groups_new_with_combinations.csv"
-    severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
-
-    classifier = PDDataLoader(activity_id, os.path.join(data_path, data_name),
-                              os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
-    target = classifier.PD_data['Severity_Level']  # Replace 'target' with your actual target column name
-
-    # Create the feature selector
-    fs = FeatureSelector(classifier.PD_data[classifier.feature_name], target)
-
-    # Identify and remove unwanted features
-    missing_features = fs.identify_missing()
-    collinear_features = fs.identify_collinear()
-    zero_importance_features = fs.identify_zero_importance()
-    low_importance_features = fs.identify_low_importance()
-    single_unique_features = fs.identify_single_unique()
+def identify_single_unique(activity_id):
+    data_path = f'../../../output/activity/step_4_feature_selection'
+    data_name = f'acc_data_4_activity_{activity_id}.csv'
+    data = pd.read_csv(os.path.join(data_path, data_name))
+    unique_counts = data.nunique()
+    single_unique_features = list(unique_counts[unique_counts == 1].index)
+    print(f"Identified {len(single_unique_features)} features with a single unique value.")
+    return single_unique_features
 
 
 def single_activity_feature_selection(activity_id):
@@ -150,7 +89,7 @@ def single_activity_feature_selection(activity_id):
                                       y_test=new_test_Y,
                                       numeric_columns=num_feats,
                                       categorical_columns=[],
-                                      seed=0)
+                                      seed=seed)
     # 检测相关特征
     corr_features = feat_selector.calculate_correlated_features(static_features=None,
                                                                 num_threshold=0.9,
@@ -162,6 +101,7 @@ def single_activity_feature_selection(activity_id):
     # 所有方法的超参数都可以更改
     selection_methods = ['lgbm', 'xgb', 'rf', 'perimp', 'rfecv', 'boruta']
     # selection_methods = ['boruta']
+    # selection_methods = ['lgbm', 'xgb', 'rf','boruta']
     final_importance_df = feat_selector.apply_feature_selection(selection_methods=selection_methods,
                                                                 lgbm_hyperparams=None,
                                                                 xgb_hyperparams=None,
@@ -207,6 +147,7 @@ def single_activity_best_num_features(activity_id):
     # 指定包含排名的列
     ranking_columns = ['rfecv_rankings', 'boruta_ranking', 'lgbm_ranking', 'xgb_ranking', 'rf_ranking',
                        'permutation_ranking']
+    # ranking_columns = ['boruta_ranking', 'lgbm_ranking', 'xgb_ranking', 'rf_ranking']
 
     # 计算每个特征的平均排名
     ranking_df['average_ranking'] = ranking_df[ranking_columns].mean(axis=1)
@@ -216,31 +157,19 @@ def single_activity_best_num_features(activity_id):
     results_df = pd.DataFrame(columns=['num_features', 'fold_1', 'fold_2', 'fold_3', 'fold_4', 'fold_5', 'mean_score'])
     # 设置 LightGBM 的参数（示例）
     params = {
-        'learning_rate': 0.02,
-        'min_child_samples': 1,  # 子节点最小样本个数
-        'max_depth': 7,  # 树的最大深度
-        'lambda_l1': 0.25,  # 控制过拟合的超参数
-        'lambda_l2': 0.25,  # 控制过拟合的超参数
-        # 'min_split_gain': 0.015,  # 最小分裂增益
         'boosting': 'gbdt',
         'objective': 'multiclass',
-        # 'n_estimators': 300,  # 决策树的最大数量
         'metric': 'multi_error',
         'num_class': len(set(data_loader.severity_mapping.values())),
-        'feature_fraction': .75,  # 每次选取百分之75的特征进行训练，控制过拟合
-        'bagging_fraction': .75,  # 每次选取百分之85的数据进行训练，控制过拟合
-        'seed': 0,
-        'num_threads': -1,
+        'max_depth': 7,
+        'seed': seed,
         'verbose': -1,
-        # 'early_stopping_rounds': 50,  # 当验证集在训练一百次过后准确率还没提升的时候停止ss
-        'num_leaves': 128,
     }
 
     # 使用交叉验证评估不同数量特征的模型性能
-    for i in range(1, len(sorted_features) + 1):
-    # for i in range(1, 100):
-        print(f'Using {i} feature(s)')
-        selected_features = sorted_features[:i]
+    for n in range(1, len(sorted_features) + 1):
+        print(f'Using {n} feature(s)')
+        selected_features = sorted_features[:n]
         f1_scores = []
 
         for fold_num, test_ids in enumerate(data_loader.fold_groups):
@@ -263,7 +192,7 @@ def single_activity_best_num_features(activity_id):
                 params,
                 lgb_train,
                 valid_sets=[lgb_train, lgb_test],
-                callbacks=[lgb.early_stopping(stopping_rounds=10), lgb.log_evaluation(100)]
+                callbacks=[lgb.early_stopping(stopping_rounds=50), lgb.log_evaluation(100)]
             )
             y_pred = model.predict(new_test_X, num_iteration=model.best_iteration)
             y_pred_labels = y_pred.argmax(axis=1)
@@ -271,10 +200,11 @@ def single_activity_best_num_features(activity_id):
             f1_scores.append(f1)
 
         mean_f1_score = np.mean(f1_scores)
+        print('mean_f1_score ', mean_f1_score)
 
         # 将结果保存到 DataFrame 中
         result_row = pd.DataFrame([{
-            'num_features': i,
+            'num_features': n,
             'fold_1': f1_scores[0],
             'fold_2': f1_scores[1],
             'fold_3': f1_scores[2],
@@ -282,25 +212,48 @@ def single_activity_best_num_features(activity_id):
             'fold_5': f1_scores[4],
             'mean_score': mean_f1_score
         }])
-        # 仅在 result_row 不为空时进行合并
-        if not result_row.empty:
-            results_df = pd.concat([results_df, result_row], ignore_index=True)
+        # 在拼接之前，排除 results_df 和 result_row 中全是 NA 的列
+        results_df_filtered = results_df.dropna(axis=1, how='all')
+        result_row_filtered = result_row.dropna(axis=1, how='all')
+        # 仅拼接非空的 DataFrame
+        if not result_row_filtered.empty:
+            results_df = pd.concat([results_df_filtered, result_row_filtered], ignore_index=True)
+        else:
+            results_df = results_df_filtered.copy()
 
     if not results_df.empty:
         best_num_features = results_df.loc[results_df['mean_score'].idxmax(), 'num_features']
         print(f'最佳特征数量: {best_num_features}')
         print(results_df)
         # 保存结果到新的文件
-        results_df.to_csv(f'../../../output/activity/step_4_feature_selection/best_num_features_activity_{activity_id}.csv', index=False)
+        results_df.to_csv(
+            f'../../../output/activity/step_4_feature_selection/best_num_features_activity_{activity_id}.csv',
+            index=False)
     else:
         print("No valid results were obtained. Please check your data and parameters.")
 
 
-if __name__ == '__main__':
-    pass
-    # 选择哪些特征需要保留
-    # for i in range(1, 17):
-    #     single_activity_feature_selection(i)
+def save_important_feature(activity_id):
+    # 加载特征选择文件
+    feature_path = f'../../../output/activity/step_4_feature_selection'
+    feature_name = f'feature_selection_results_activity_{activity_id}.csv'
+    feature = pd.read_csv(os.path.join(feature_path, feature_name))
+    # 加载活动数据
+    data_path = "../../../output/activity/step_2_select_sensors"
+    data_name = "acc_data.csv"
+    data = pd.read_csv(os.path.join(data_path, data_name))
+    # 获得特征选择的数据集
+    feature_column = feature['feature']
+    label_info = ['PatientID', 'activity_label', 'Severity_Level']
+    data = data[feature_column.tolist() + label_info]
+    # 保存文件
+    file = os.path.join(feature_path, f'acc_data_4_activity_{activity_id}.csv')
+    data.to_csv(file, index=False)
 
-    # 选择最佳特征数量
-    single_activity_best_num_features(1)
+
+if __name__ == '__main__':
+    for i in range(1, 17):
+        # 选择哪些特征需要保留
+        # single_activity_feature_selection(i)
+        # # 选择最佳特征数量
+        save_important_feature(i)

@@ -5,11 +5,14 @@ from omegaconf import DictConfig
 from optuna import Trial
 import numpy as np
 
+
 def suggest_int(trial: Trial, cfg: DictConfig, *route: str) -> int:
     return _suggest(trial.suggest_int, cfg, *route)
 
+
 def suggest_float(trial: Trial, cfg: DictConfig, *route: str) -> float:
     return _suggest(trial.suggest_float, cfg, *route)
+
 
 def _suggest(func: Callable, cfg: DictConfig, *route: str) -> Union[float, int]:
     d = cfg
@@ -31,11 +34,13 @@ def _suggest(func: Callable, cfg: DictConfig, *route: str) -> Union[float, int]:
     print(f'Fetching name: {name}={v} from {"/".join(route)}', flush=True)
     return v
 
+
 def set_seed(seed: int):
     print(f'Set seed={seed}')
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
+    return seed
 
 
 # Define __all__ to include all the functions you want to export
