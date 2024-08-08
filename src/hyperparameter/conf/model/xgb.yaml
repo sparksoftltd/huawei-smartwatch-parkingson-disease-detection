@@ -1,0 +1,37 @@
+params:
+  objective: "multi:softmax"
+  num_class: 4  # 这个值可以根据具体情况调整
+  eval_metric: 'mlogloss'
+  verbosity: -1
+  boosting_type: "gbdt"
+  num_threads: -1
+  seed: 0
+  num_boost_round: 5000
+# 提高准确性的超参数
+  eta:
+    low: 0.01
+    high: 3
+    log: true
+# 控制树结构的超参数
+  max_depth:
+    low: 3
+    high: 10
+  min_child_weights:
+    low: 0
+    high: 10
+  subsample:
+    low: 0.5
+    high: 1
+  gamma:
+    low: 0
+    high: 10
+  lambda:
+    low: 0
+    high: 1
+  alpha:
+    low: 0
+    high: 1
+
+
+
+

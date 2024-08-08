@@ -19,24 +19,6 @@ class FeatureSelector:
         self.missing_threshold = 0.6
         self.low_importance_threshold = 0.01
 
-    # def identify_zero_importance(self):
-    #     model = RandomForestClassifier(n_estimators=100, random_state=0)
-    #     model.fit(self.data, self.target)
-    #     importances = model.feature_importances_
-    #     self.zero_importance_features = [self.features[i] for i in range(len(importances)) if importances[i] == 0]
-    #     print(f"Identified {len(self.zero_importance_features)} features with zero importance in tree-based model.")
-    #     return self.zero_importance_features
-    #
-    # def identify_low_importance(self):
-    #     model = RandomForestClassifier(n_estimators=100, random_state=0)
-    #     model.fit(self.data, self.target)
-    #     importances = model.feature_importances_
-    #     self.low_importance_features = [self.features[i] for i in range(len(importances)) if
-    #                                     importances[i] < self.low_importance_threshold]
-    #     print(
-    #         f"Identified {len(self.low_importance_features)} features with importance < {self.low_importance_threshold}.")
-    #     return self.low_importance_features
-
     def remove_features(self):
         self.data = self.data.drop(
             columns=self.single_unique_features + self.zero_importance_features + self.low_importance_features)
@@ -52,6 +34,8 @@ def identify_single_unique(activity_id):
     single_unique_features = list(unique_counts[unique_counts == 1].index)
     print(f"Identified {len(single_unique_features)} features with a single unique value.")
     return single_unique_features
+
+
 
 
 def single_activity_feature_selection(activity_id):
@@ -233,6 +217,25 @@ def single_activity_best_num_features(activity_id):
         print("No valid results were obtained. Please check your data and parameters.")
 
 
+def important_feature_columns(activity_id):
+    ranking_importance_path = f'../../../output/activity/step_4_feature_selection/feature_selection_results_activity_{activity_id}.csv'
+    ranking_df = pd.read_csv(ranking_importance_path)
+    # 指定包含排名的列
+    ranking_columns = ['rfecv_rankings', 'boruta_ranking', 'lgbm_ranking', 'xgb_ranking', 'rf_ranking',
+                       'permutation_ranking']
+
+    # 计算每个特征的平均排名
+    ranking_df['average_ranking'] = ranking_df[ranking_columns].mean(axis=1)
+    # 根据平均排名对特征进行排序
+    sorted_features = ranking_df.sort_values(by='average_ranking')
+    # patch 消除唯一值Feature
+    unique_columns = ['acc_a_max_a', 'acc_a_max_x', 'acc_a_max_y', 'acc_a_max_z', 'acc_a_mean_a', 'acc_a_mean_x',
+                      'acc_a_mean_y', 'acc_a_mean_z']
+    existing_unique_columns_columns = [col for col in unique_columns if col in sorted_features.columns]
+    sorted_features = sorted_features.drop(columns=existing_unique_columns_columns)
+    return sorted_features.feature
+
+
 def save_important_feature(activity_id):
     # 加载特征选择文件
     feature_path = f'../../../output/activity/step_4_feature_selection'
@@ -242,12 +245,11 @@ def save_important_feature(activity_id):
     data_path = "../../../output/activity/step_2_select_sensors"
     data_name = "acc_data.csv"
     data = pd.read_csv(os.path.join(data_path, data_name))
-    # 获得特征选择的数据集
-    feature_column = feature['feature']
+    feature_column = important_feature_columns(activity_id)
     label_info = ['PatientID', 'activity_label', 'Severity_Level']
     data = data[feature_column.tolist() + label_info]
     # 保存文件
-    file = os.path.join(feature_path, f'acc_data_4_activity_{activity_id}.csv')
+    file = os.path.join(feature_path, f'acc_data_activity_{activity_id}.csv')
     data.to_csv(file, index=False)
 
 
@@ -257,3 +259,4 @@ if __name__ == '__main__':
         # single_activity_feature_selection(i)
         # # 选择最佳特征数量
         save_important_feature(i)
+        print(f"saved activity {i}")

@@ -130,6 +130,7 @@ if __name__ == '__main__':
 
     classifier = PDDataLoader(activity_id, os.path.join(data_path, data_name),
                               os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
+    print('a')
 
 
 

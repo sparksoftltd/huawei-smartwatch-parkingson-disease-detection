@@ -1,0 +1,17 @@
+activity_id: 11
+models:
+  lgbm:
+    params:
+      objective: "multiclass"
+      num_class: 4
+      metric: "multi_logloss"
+      verbosity: -1
+      boosting_type: "gbdt"
+      num_threads: -1
+      n_estimators: 100
+      max_depth: 9
+      learning_rate: 0.638
+      num_leaves: 507
+      min_child_samples: 51
+      lambda_l1: 13.529
+      lambda_l2: 184.325

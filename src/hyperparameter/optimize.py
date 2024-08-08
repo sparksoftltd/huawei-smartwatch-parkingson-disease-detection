@@ -1,81 +1,62 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import optuna
-import lightgbm as lgb
-import numpy as np
-from sklearn.metrics import f1_score
-import sys
 import os
-
-
 from src.utils.PDDataLoader import PDDataLoader
-from src.utils.utils import suggest_int, suggest_float, set_seed
+from src.utils.utils import set_seed, suggest_int, suggest_float
+from src.utils.ModelTrainerEvaluator import ModelTrainer, ModelEvaluator
 
 
-def outer_objective(cfg: DictConfig):
+def model_params(trial, cfg: DictConfig, classifier):
+    model_params_cfg = cfg.model.params
+    params = None
+    if classifier == 'lgbm':
+        max_depth = suggest_int(trial, model_params_cfg, "max_depth")
+        num_leaves_max = max(2 ** max_depth - 1, 2)
+        params = {
+            "objective": model_params_cfg["objective"],
+            "num_class": model_params_cfg["num_class"],
+            "metric": model_params_cfg["metric"],
+            "verbosity": model_params_cfg["verbosity"],
+            "boosting_type": model_params_cfg["boosting_type"],
+            "num_threads": model_params_cfg["num_threads"],
+            "seed": model_params_cfg["seed"],
+            "n_estimators": model_params_cfg["n_estimators"],
+            "learning_rate": suggest_float(trial, model_params_cfg, "learning_rate"),
+            "max_depth": max_depth,
+            "num_leaves": trial.suggest_int("num_leaves", 2, num_leaves_max),
+            "min_child_samples": suggest_int(trial, model_params_cfg, "min_child_samples"),
+            "lambda_l1": suggest_float(trial, model_params_cfg, "lambda_l1"),
+            "lambda_l2": suggest_float(trial, model_params_cfg, "lambda_l2"),
+        }
+    elif classifier == 'xgb':
+        pass
+    else:
+        raise ValueError("Unsupported classifier parameters.")
+    return params
+
+
+def outer_objective(cfg: DictConfig, activity_id: int):
     def objective(trial):
         dataset_cfg = cfg.dataset.default
-        model_params_cfg = cfg.model.params
         data_loader = PDDataLoader(
-            dataset_cfg.activity_id,
-            os.path.join(dataset_cfg.data_path, dataset_cfg.data_name),
+            activity_id,
+            os.path.join(dataset_cfg.data_path, f"acc_data_activity_{activity_id}.csv"),
             os.path.join(dataset_cfg.fold_groups_path, dataset_cfg.fold_groups_name),
             dataset_cfg.severity_mapping
         )
-
-        max_depth = suggest_int(trial, model_params_cfg, "max_depth")
-        num_leaves_max = 2 ** max_depth
-
-        param = {
-            "objective": model_params_cfg.objective,
-            "num_class": model_params_cfg.num_class,
-            "metric": model_params_cfg.metric,
-            "verbosity": model_params_cfg.verbosity,
-            "boosting_type": model_params_cfg.boosting_type,
-            # "max_depth": max_depth,
-            # "num_leaves_max": num_leaves_max,
-            # "learning_rate": suggest_float(trial, model_params_cfg, "learning_rate"),
-            # "max_bin": suggest_int(trial, model_params_cfg, "max_bin"),
-            # "lambda_l1": suggest_float(trial, model_params_cfg, "lambda_l1"),
-            # "lambda_l2": suggest_float(trial, model_params_cfg, "lambda_l2"),
-            "min_gain_to_split": suggest_float(trial, model_params_cfg, "min_gain_to_split"),
-            "feature_fraction": suggest_float(trial, model_params_cfg, "feature_fraction"),
-            "bagging_fraction": suggest_float(trial, model_params_cfg, "bagging_fraction"),
-        }
-
-        f1_scores = []
-
-        for fold_num, test_ids in enumerate(data_loader.fold_groups):
-            train_X, train_Y, test_X_ls, test_Y_ls, train_ids, test_ids = data_loader.create_train_test_split(fold_num, test_ids)
-
-            lgb_train = lgb.Dataset(train_X, train_Y)
-            new_test_X = np.vstack(test_X_ls)
-            new_test_Y_ls = []
-            for bag_test_Y, bag_test_X in zip(test_Y_ls, test_X_ls):
-                new_test_Y_ls.append(np.full(bag_test_X.shape[0], bag_test_Y))
-            new_test_Y = np.hstack(new_test_Y_ls)
-            lgb_test = lgb.Dataset(new_test_X, new_test_Y, reference=lgb_train)
-
-            model = lgb.train(
-                param,
-                lgb_train,
-                valid_sets=[lgb_train, lgb_test],
-                callbacks=[lgb.early_stopping(stopping_rounds=10), lgb.log_evaluation(100)]
-            )
-            y_pred = model.predict(new_test_X, num_iteration=model.best_iteration)
-            y_pred_labels = y_pred.argmax(axis=1)
-            f1 = f1_score(new_test_Y, y_pred_labels, zero_division=0, average='macro')
-            f1_scores.append(f1)
-
-        mean_f1_score = np.mean(f1_scores)
-        return mean_f1_score
+        classifier = 'lgbm'
+        params = model_params(trial, cfg, classifier)
+        model_trainer = ModelTrainer(classifier, params)
+        study = ModelEvaluator(data_loader, model_trainer)
+        metrics = study.train_evaluate()
+        return metrics['mean_f1']
 
     return objective
 
-@hydra.main(config_path="conf", config_name="config", version_base=None)
-def main(cfg: DictConfig):
-    print(f'\n{OmegaConf.to_yaml(cfg)}')
 
+def study(cfg: DictConfig, activity_id: int):
+    print(f'\n{OmegaConf.to_yaml(cfg)}')
     set_seed(cfg.seed)
     expname = cfg.expname
     n_trials = cfg.optuna.n_trials
@@ -84,11 +65,11 @@ def main(cfg: DictConfig):
                                 storage=cfg.optuna.storage,
                                 sampler=optuna.samplers.TPESampler(seed=cfg.seed),
                                 load_if_exists=True,
-                                study_name=expname)
+                                study_name='activity_id ' + str(activity_id) + ' ' + expname)
 
     study.set_user_attr('Completed', False)
 
-    study.optimize(outer_objective(cfg), n_trials=n_trials,
+    study.optimize(outer_objective(cfg, activity_id), n_trials=n_trials,
                    gc_after_trial=True, show_progress_bar=True)
     study.set_user_attr('Completed', True)
 
@@ -96,6 +77,14 @@ def main(cfg: DictConfig):
     print(f'best value: {study.best_value}')
     print(study.trials_dataframe())
     print(f'{expname}')
+
+
+@hydra.main(config_path="conf", config_name="config", version_base=None)
+def main(cfg: DictConfig):
+    # study(cfg, 3)
+    for a in range(1, 16 + 1):
+        study(cfg, a)
+
 
 if __name__ == "__main__":
     main()
