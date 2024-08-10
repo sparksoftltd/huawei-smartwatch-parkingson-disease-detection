@@ -98,55 +98,13 @@ class ModelTrainer:
         elif self.classifier == 'xgb':
             pass
         elif self.classifier == 'mlp_2':
-            self.params = {
-                'hidden_layer_sizes': (128, 64),
-                'activation': 'relu',
-                'solver': 'adam',
-                'alpha': 0.0001,
-                'batch_size': 'auto',
-                'learning_rate': 'constant',
-                'learning_rate_init': 5e-4,
-                'max_iter': 200,
-                'random_state': 2024,
-                'early_stopping': True,
-                'validation_fraction': 0.1,
-                'n_iter_no_change': 10,
-                'verbose': 1
-            }
+            self.params['hidden_layer_sizes'] = (128, 64)
             self.model = make_pipeline(StandardScaler(), MLPClassifier(**self.params))
         elif self.classifier == 'mlp_4':
-            self.params = {
-                'hidden_layer_sizes': (64, 32, 16, 8),
-                'activation': 'relu',
-                'solver': 'adam',
-                'alpha': 0.001,
-                'batch_size': 'auto',
-                'learning_rate': 'constant',
-                'learning_rate_init': 5e-4,
-                'max_iter': 200,
-                'random_state': 2024,
-                'early_stopping': True,
-                'validation_fraction': 0.1,
-                'n_iter_no_change': 10,
-                'verbose': 1
-            }
+            self.params['hidden_layer_sizes'] = (64, 32, 16, 8)
             self.model = make_pipeline(StandardScaler(), MLPClassifier(**self.params))
         elif self.classifier == 'mlp_8':
-            self.params = {
-                'hidden_layer_sizes': (256, 128, 64, 64, 32, 32, 16, 8),
-                'activation': 'relu',
-                'solver': 'adam',
-                'alpha': 0.001,
-                'batch_size': 'auto',
-                'learning_rate': 'constant',
-                'learning_rate_init': 5e-4,
-                'max_iter': 200,
-                'random_state': 2024,
-                'early_stopping': True,
-                'validation_fraction': 0.1,
-                'n_iter_no_change': 10,
-                'verbose': 1
-            }
+            self.params['hidden_layer_sizes'] = (256, 128, 64, 64, 32, 32, 16, 8)
             self.model = make_pipeline(StandardScaler(), MLPClassifier(**self.params))
         else:
             raise ValueError("Unsupported classifier type.")

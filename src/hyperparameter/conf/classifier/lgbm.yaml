@@ -1,3 +1,4 @@
+name: lgbm
 params:
   objective: "multiclass"
   num_class: 4  # 这个值可以根据具体情况调整

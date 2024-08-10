@@ -28,6 +28,7 @@ class SeverityAssessment:
         assert self.activity_id == config['activity_id'], "error activity parameters"
         # loading hyperparameters
         params = config[self.classifier]['params']
+        print(params)
         # severity assessment
         print(f'classifier [{self.classifier}] on activity [{self.activity_id}]')
         model_trainer = ModelTrainer(self.classifier, params)
@@ -36,8 +37,8 @@ class SeverityAssessment:
 
 
 if __name__ == '__main__':
-    activity_id = 1
-    classifier = 'lgbm'
+    activity_id = 3
+    classifier = 'mlp_4'
     sa = SeverityAssessment(activity_id, classifier)
     sa.assessment()
 

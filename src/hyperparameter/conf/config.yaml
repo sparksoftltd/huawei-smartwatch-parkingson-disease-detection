@@ -1,5 +1,5 @@
 defaults:
-  - model: lgbm  # 引用模型参数配置文件
+  - classifier: mlp_2  # 引用模型参数配置文件
   - _self_
 
 dataset:
@@ -10,7 +10,7 @@ dataset:
     severity_mapping: {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
 
 optuna:
-  n_trials: 1000
+  n_trials: 50
   timeout: 600  # 超参数优化的超时时间（秒）
   direction: "maximize"
   storage: "sqlite:///optuna.db"

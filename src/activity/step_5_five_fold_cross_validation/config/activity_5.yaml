@@ -1,17 +1,33 @@
-activity_id: 3
-models:
-  lgbm:
-    params:
-      objective: "multiclass"
-      num_class: 4
-      metric: "multi_logloss"
-      verbosity: -1
-      boosting_type: "gbdt"
-      num_threads: -1
-      n_estimators: 100
-      max_depth: 9
-      learning_rate: 0.454
-      num_leaves: 259
-      min_child_samples: 39
-      lambda_l1: 0.306
-      lambda_l2: 139.056
+activity_id: 5
+
+lgbm:
+  params:
+    objective: "multiclass"
+    num_class: 4
+    metric: "multi_logloss"
+    verbosity: -1
+    boosting_type: "gbdt"
+    num_threads: -1
+    seed: 0
+    n_estimators: 100
+    max_depth: 9
+    learning_rate: 0.758052112327382
+    num_leaves: 510
+    min_child_samples: 45
+    lambda_l1: 9.19450884620122
+    lambda_l2: 159.28310490740608
+xgb:
+  params:
+    objective: "multi:softprob"
+    num_class: 4  # 这个值可以根据具体情况调整
+    eval_metric: 'mlogloss'
+    verbosity: 0
+    seed: 0
+    num_boost_round: 5000
+    eta:  0.5584213563298879
+    max_depth: 4
+    min_child_weights: 3
+    subsample: 0.9476829561124702
+    gamma: 9.035877630799067
+    lambda: 0.9614511315170102
+    alpha: 0.7982840969371214

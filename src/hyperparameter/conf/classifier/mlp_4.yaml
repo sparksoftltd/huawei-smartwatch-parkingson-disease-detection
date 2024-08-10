@@ -1,0 +1,16 @@
+name: mlp_4
+params:
+  early_stopping: true
+  random_state: 0
+  verbose: 0
+  alpha:
+    low: 0.00001
+    high: 0.1
+    log: true
+  learning_rate_init:
+    low: 0.00001
+    high: 0.1
+    log: true
+  max_iter:
+    low: 200
+    high: 1000
