@@ -237,7 +237,7 @@ class ActivityCombinationPreprocessor:
 if __name__ == '__main__':
     # data_param1 = r'0602_3_ws400_ol0.5_important_all_20.csv'  # 18
     # data_param1 = r'0602_3_ws500_ol0.5_important_all_20.csv'  # 14
-    data_param1 = r"../../../output/activity/step_4_feature_selection/acc_data_important_all_20.csv"  # 14
+    data_param1 = r"../../../output/activity/feature_selection/acc_data_important_all_20.csv"  # 14
     combinations = list(itertools.combinations([9, 11], 2))
     for sequence in combinations:
         activityCombinationPreprocessor = ActivityCombinationPreprocessor(data_param1,

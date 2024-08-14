@@ -29,12 +29,12 @@ now = datetime.datetime.now()
 # 格式化月和日
 month_day = now.strftime("%m%d")  # 月和日格式为"MMdd"，例如"0509"
 # 设置日志的配置，美包含INFO标签
-logging.basicConfig(
-    filename=rf"../../../output/activity/step_7_comb_cv5/{month_day}_model_training_ac.log",
-    level=logging.INFO,
-    format='%(message)s',
-    filemode='a'
-)
+# logging.basicConfig(
+#     filename=rf"../../../output/activity/step_7_comb_cv5/{month_day}_model_training_ac.log",
+#     level=logging.INFO,
+#     format='%(message)s',
+#     filemode='a'
+# )
 
 
 class PDClassifier:
@@ -380,10 +380,10 @@ class PDClassifier:
         # combined_results_row
         # 获取当前脚本文件所在目录
         # current_directory = os.path.dirname(os.path.abspath(__file__))
-        # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', file_path)
+        # file_path = os.path.join(r'../../../output/activity/severity aeeseement', file_path)
         # file_path = os.path.join(r'../../../output/activity/step_7_five_fold_cross_validation_activity_combination', file_path)
         file_path = os.path.join(r'../../../output/activity/step_7_comb_cv5', file_path)
-        # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', '123.csv')
+        # file_path = os.path.join(r'../../../output/activity/severity aeeseement', '123.csv')
 
         try:
             # 尝试打开文件，如果文件不存在则创建并写入表头

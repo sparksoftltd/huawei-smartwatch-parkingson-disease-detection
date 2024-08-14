@@ -1,0 +1,14 @@
+name: logistic_l1
+params:
+  penalty: l1
+  solver: saga
+  random_state: 0
+  n_jobs: -1
+  verbose: 0
+  max_iter:
+    low: 10
+    high: 1000
+  C:
+    low: 0.01
+    high: 1000
+    step: 0.01

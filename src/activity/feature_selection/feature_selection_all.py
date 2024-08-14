@@ -10,20 +10,20 @@ from src.utils import set_seed
 seed = set_seed(0)
 
 
-class FeatureSelector:
-    def __init__(self, activity_id, data, target):
-        self.activity_id = activity_id
-        self.data = data
-        self.target = target,
-        self.features = data.columns
-        self.missing_threshold = 0.6
-        self.low_importance_threshold = 0.01
-
-    def remove_features(self):
-        self.data = self.data.drop(
-            columns=self.single_unique_features + self.zero_importance_features + self.low_importance_features)
-        print(f"Removed features. Remaining features: {self.data.shape[1]}")
-        return self.data
+# class FeatureSelector:
+#     def __init__(self, activity_id, data, target):
+#         self.activity_id = activity_id
+#         self.data = data
+#         self.target = target,
+#         self.features = data.columns
+#         self.missing_threshold = 0.6
+#         self.low_importance_threshold = 0.01
+#
+#     def remove_features(self):
+#         self.data = self.data.drop(
+#             columns=self.single_unique_features + self.zero_importance_features + self.low_importance_features)
+#         print(f"Removed features. Remaining features: {self.data.shape[1]}")
+#         return self.data
 
 
 def identify_single_unique(activity_id):
@@ -34,8 +34,6 @@ def identify_single_unique(activity_id):
     single_unique_features = list(unique_counts[unique_counts == 1].index)
     print(f"Identified {len(single_unique_features)} features with a single unique value.")
     return single_unique_features
-
-
 
 
 def single_activity_feature_selection(activity_id):
@@ -231,12 +229,12 @@ def important_feature_columns(activity_id):
     # patch 消除唯一值Feature
     unique_columns = ['acc_a_max_a', 'acc_a_max_x', 'acc_a_max_y', 'acc_a_max_z', 'acc_a_mean_a', 'acc_a_mean_x',
                       'acc_a_mean_y', 'acc_a_mean_z']
-    existing_unique_columns_columns = [col for col in unique_columns if col in sorted_features.columns]
-    sorted_features = sorted_features.drop(columns=existing_unique_columns_columns)
-    return sorted_features.feature
+    # 返回剩余的值
+    remaining_values = [value for value in sorted_features['feature'] if value not in unique_columns]
+    return remaining_values
 
 
-def save_important_feature(activity_id):
+def save_important_feature(activity_id: int):
     # 加载特征选择文件
     feature_path = f'../../../output/activity/step_4_feature_selection'
     feature_name = f'feature_selection_results_activity_{activity_id}.csv'
@@ -247,10 +245,11 @@ def save_important_feature(activity_id):
     data = pd.read_csv(os.path.join(data_path, data_name))
     feature_column = important_feature_columns(activity_id)
     label_info = ['PatientID', 'activity_label', 'Severity_Level']
-    data = data[feature_column.tolist() + label_info]
+    data = data[feature_column + label_info]
+    activity_id_filtered_data = data[data['activity_label'] == activity_id]
     # 保存文件
     file = os.path.join(feature_path, f'acc_data_activity_{activity_id}.csv')
-    data.to_csv(file, index=False)
+    activity_id_filtered_data.to_csv(file, index=False)
 
 
 if __name__ == '__main__':

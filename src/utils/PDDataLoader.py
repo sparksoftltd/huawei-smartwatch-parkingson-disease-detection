@@ -3,28 +3,36 @@ import pandas as pd
 import numpy as np
 import json
 from sklearn.preprocessing import StandardScaler
+from typing import Dict, List
 
 
 class PDDataLoader:
-    def __init__(self, activity_id, data_path, fold_groups_path, severity_mapping=None):
+    def __init__(self, activity_id: List[int], data_path: str, fold_groups_path: str, severity_mapping: Dict = None):
         if severity_mapping is None:
             severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}  # 映射关系
         self.data_path = data_path  # 手工特征文件路径
         self.activity_id = activity_id  # 从手工特征文件中选取指定activity_id对应的数据
         self.severity_mapping = severity_mapping  # 映射关系
-        self.PD_data = self.load_and_preprocess_data()  # 预处理数据文件
-        self.feature_name = self.PD_data.columns[:-3]
+        self.single_activity = True
+        self.feature_name = None
+        if len(activity_id) > 1:
+            self.single_activity = False
+        self.PD_data = self.load_and_preprocess_data()  # 预处理数据文件,确定feature_name
         self.fold_groups = self.process_fold_groups(fold_groups_path)
         self.bag_data_dict, self.patient_ids, self.fold_groups = self.group_data(self.fold_groups)  # 组织数据
 
     def process_fold_groups(self, csv_file_path):
         try:
-            data = pd.read_csv(csv_file_path)
+            fold_groups_csv = pd.read_csv(csv_file_path)
         except FileNotFoundError as e:
             print(f"Error: {e}")
             return []
-        data['activity_label'] = data['activity_label'].astype(str)
-        filtered_data = data[data['activity_label'] == str(self.activity_id)]
+        fold_groups_csv['activity_label'] = fold_groups_csv['activity_label'].astype(str)
+        if self.single_activity:
+            activity_ids = str(self.activity_id[0])
+        else:
+            activity_ids = '+'.join(map(str, self.activity_id))
+        filtered_data = fold_groups_csv.loc[fold_groups_csv['activity_label'] == activity_ids, :]
         fold_groups = []
         for i in range(1, 6):
             group_data = []
@@ -37,19 +45,24 @@ class PDDataLoader:
     def load_and_preprocess_data(self):
         data = pd.read_csv(self.data_path)
         self._validate_activity_id()
-        data = data.loc[data['activity_label'] == int(self.activity_id)]
         print(f"Loading data of activity_id: {self.activity_id}")
+        # 列出要排除的列
+        exclude_columns = ['PatientID', 'Severity_Level', 'activity_label']
+        # 使用 difference 方法获取剩余的特征列
+        self.feature_name = data.columns.difference(exclude_columns)
+        if self.single_activity:  # 从总数据中选择部分的活动数据，并重置索引
+            data = data.loc[data['activity_label'] == int(self.activity_id[0]), :]
+            data = data.reset_index(drop=True)  # 重置索引
         data['Severity_Level'] = data['Severity_Level'].map(self.severity_mapping)
         data = data.dropna()
-        numerical_columns = data.columns[:-3]
         scaler = StandardScaler()
-        data[numerical_columns] = scaler.fit_transform(data[numerical_columns])
+        data[self.feature_name] = scaler.fit_transform(data[self.feature_name])
         return data
 
     def _validate_activity_id(self):
-        activity_id_num = int(self.activity_id)
-        if not (1 <= activity_id_num <= 16):
-            raise AssertionError(f"activity_id {self.activity_id} is not in the range 1 to 16.")
+        for a in self.activity_id:
+            if not (1 <= int(a) <= 16):
+                raise AssertionError(f"activity_id {a} is not in the range 1 to 16.")
 
     def create_train_test_split(self, fold_num, test_ids):
         train_ids = []
@@ -99,7 +112,7 @@ class PDDataLoader:
         patient_ids = []
         for (patient_id, _), group in grouped:
             self._validate_activity_id()
-            bag_data = np.array(group.iloc[:, :-3])
+            bag_data = np.array(group.loc[:, self.feature_name])
             bag_data_instance_label = np.array(group['Severity_Level'])
             patient_ids.append(patient_id)
             if patient_id not in bag_data_dict:
@@ -120,17 +133,19 @@ class PDDataLoader:
 
 
 if __name__ == '__main__':
-    # 以活动3为例
-    activity_id = 7
-    data_path = "../../output/activity/step_2_select_sensors"
+    # 以单活动7为例
+    activity_id = [7]
+    data_path = "../../output/activity/step_4_feature_selection"
     data_name = "acc_data.csv"
     fold_groups_path = "../../input/activity/step_3_output_feature_importance"
-    fold_groups_name = "fold_groups_new_with_combinations.csv"
+    fold_groups_name = "fold_groups_new_with_combinations 2.csv"
     severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+    single_data = PDDataLoader(activity_id, os.path.join(data_path, data_name),
+                               os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
 
-    classifier = PDDataLoader(activity_id, os.path.join(data_path, data_name),
-                              os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
-    print('a')
-
-
-
+    # 以活动14 15 16为例
+    comb_activity_id = [14, 15, 16]
+    comb_data_path = "../../output/activity/step_6_comb"
+    comb_data_name = "merged_activities_14_15_16_vertical.csv"
+    comb_data = PDDataLoader(comb_activity_id, os.path.join(comb_data_path, comb_data_name),
+                             os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)

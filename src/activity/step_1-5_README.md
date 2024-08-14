@@ -4,10 +4,10 @@
 
 ```python
 # 输入文件
-feature_label.to_csv(r'../../../output/activity/step_1_feature_extraction' + r"/" + side_r + "_acc_gyro_mag_feature_label.csv", index=False)
+feature_label.to_csv(r'../../../output/activity/feature_extraction' + r"/" + side_r + "_acc_gyro_mag_feature_label.csv", index=False)
 
 # 将特征保存为csv文件，对应输出文件
-feature_label.to_csv(r'../../../output/activity/step_1_feature_extraction' + r"/" + side_r + "_acc_gyro_mag_feature_label.csv", index=False)
+feature_label.to_csv(r'../../../output/activity/feature_extraction' + r"/" + side_r + "_acc_gyro_mag_feature_label.csv", index=False)
 ```
 
 ## step2 选择指定传感器特征
@@ -28,11 +28,11 @@ feature_label.to_csv(r'../../../output/activity/step_1_feature_extraction' + r"/
     #这是PDClassifier输入两个文件，
     # acc_data.csv为Step2的筛选后的acc相关特征
     # fold_groups_new_with_combinations.csv文件会根据选择的activity_id，确定五折交叉验证中训练集和验证集
-            classifier = PDClassifier(r"../../../output/activity/step_2_select_sensors/acc_data.csv", activity_id,
-                                  r'../../../input/activity/step_2_select_sensors/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
+            classifier = PDClassifier(r"../../../output/activity/select_sensors/acc_data.csv", activity_id,
+                                  r'../../../input/activity/select_sensors/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
    
    # 输出每个activity_id数据对应的特征重要性排序文件，会生成16个动作的特征重要性文件
-shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance' ,
+shap_summary.to_csv(os.path.join(r'../../../output/activity/feature_importance_shap' ,
             f'{os.path.basename(self.data_path)}_{self.activity_id}_shap_importance.csv'), index=False
         )
 ```
@@ -43,17 +43,17 @@ shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_featur
 #输入
 
 #1、acc相关特征的特征文件
-data_path_param1 = r"../../../output/activity/step_2_select_sensors/acc_data.csv"
+data_path_param1 = r"../../../output/activity/select_sensors/acc_data.csv"
 #2、 指定需要降低的维度是多少这里选择20
     choosefeaturenum_param3 = 20
 #3、指定需要处理降维的activity_id是哪一些，默认是将全部1-16序号动作全部降低纬度    
 sequence_param2 = list(range(1, 17))
 #4、对应每个activity_id特征重要性文件
-        tempdata = pd.read_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance',
+        tempdata = pd.read_csv(os.path.join(r'../../../output/activity/feature_importance_shap',
             f'{os.path.basename(data_path)}_{se}_shap_importance.csv'))
 
 #输出activity_id为1-17的前20重要维度特征的降维后的特征文件，该特征文件每个activity_id对应的特征为20维度。
-    filename = rf"../../../output/activity/step_4_feature_selection/{os.path.splitext(os.path.basename(data_path))[0]}_important_all_{choosefeaturenum}.csv"
+    filename = rf"../../../output/activity/feature_selection/{os.path.splitext(os.path.basename(data_path))[0]}_important_all_{choosefeaturenum}.csv"
 ```
 
 ## step5 无折交叉验证
@@ -67,19 +67,19 @@ sequence_param2 = list(range(1, 17))
                         'mlp_2', 'mlp_4', 'mlp_8']
 # 3、选择acc_data_important_all_20.csv降维后的特征文件、选择activity_id作训练和测试，选择fold_groups_new_with_combinations.csv（其中存储了每个activity_id对应的五折交叉验证的分组信息，按照里面的分组进行训练和预测）
     for activity_id in tqdm(activity_range):
-        classifier = PDClassifier(r"../../../output/activity/step_4_feature_selection/acc_data_important_all_20.csv", activity_id,
-                                  r'../../../input/activity/step_3_output_feature_importance/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
+        classifier = PDClassifier(r"../../../output/activity/feature_selection/acc_data_important_all_20.csv", activity_id,
+                                  r'../../../input/activity/feature_importance_shap/fold_groups_new_with_combinations.csv')  # 初始化PDClassifier分类器
 # 输出记录训练测试过程的日志文件
 # 设置日志的配置，美包含INFO标签
 # 1、训练日志
 logging.basicConfig(
-    filename=rf"../../../output/activity/step_5_five_fold_cross_validation/{month_day}_model_training.log",
+    filename=rf"../../../output/activity/severity aeeseement/{month_day}_model_training.log",
     level=logging.INFO,
     format='%(message)s',
     filemode='a'
 )
 # 2、测试结果文件汇总（表格）
-        file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', file_path)
+        file_path = os.path.join(r'../../../output/activity/severity aeeseement', file_path)
 
 ```
 
@@ -88,7 +88,7 @@ logging.basicConfig(
 ```python
 # 输入
 # 1、指定降维后的acc特征文件
-data_param1 = r"../../../output/activity/step_4_feature_selection/acc_data_important_all_20.csv"  # 14
+data_param1 = r"../../../output/activity/feature_selection/acc_data_important_all_20.csv"  # 14
 # 2、传入需要拼接activity_id序列（列表列性），拼接方案scheme
 # # - scheme: 整数，组合方案类型，0 表示垂直拼接，1 表示水平拼接，2 表示融合
 #   scheme=0 垂直拼接，数据按照垂直方向，将活动数据按sequence次序垂直排列，先排列sequence[i]的全部数据，再排列sequence[i+1]的全部数据。

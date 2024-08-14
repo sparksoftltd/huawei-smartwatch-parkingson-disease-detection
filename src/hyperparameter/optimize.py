@@ -2,10 +2,17 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import optuna
 import os
+import sys
 from src.utils.PDDataLoader import PDDataLoader
 from src.utils.utils import set_seed, suggest_int, suggest_float
 from src.utils.ModelTrainerEvaluator import ModelTrainer, ModelEvaluator
 from optuna import Trial
+
+# 获取当前文件所在的目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 添加 src 目录到 sys.path
+sys.path.append(os.path.join(current_dir, '../..'))
 
 
 def optimize_lgbm_params(trial, model_params_cfg):
@@ -21,7 +28,7 @@ def optimize_lgbm_params(trial, model_params_cfg):
         "boosting_type": model_params_cfg["boosting_type"],
         "num_threads": model_params_cfg["num_threads"],
         "seed": model_params_cfg["seed"],
-        "n_estimators": model_params_cfg["n_estimators"],
+        # "n_estimators": model_params_cfg["n_estimators"],
         "learning_rate": suggest_float(trial, model_params_cfg, "learning_rate"),
         "max_depth": max_depth,
         "num_leaves": trial.suggest_int("num_leaves", 2, num_leaves_max),
@@ -94,6 +101,34 @@ def optimize_mlp_4_params(trial: Trial, model_params_cfg):
     return params
 
 
+def optimize_logistic_l1_params(trial: Trial, model_params_cfg):
+    params = {
+        "penalty": model_params_cfg["penalty"],
+        "solver": model_params_cfg["solver"],
+        "random_state": model_params_cfg["random_state"],
+        "n_jobs": model_params_cfg["n_jobs"],
+        "verbose": model_params_cfg["verbose"],
+        "max_iter": suggest_int(trial, model_params_cfg, "max_iter"),
+        "C": suggest_float(trial, model_params_cfg, "C"),
+    }
+
+    return params
+
+
+def optimize_logistic_l2_params(trial: Trial, model_params_cfg):
+    params = {
+        "penalty": model_params_cfg["penalty"],
+        "solver": model_params_cfg["solver"],
+        "random_state": model_params_cfg["random_state"],
+        "n_jobs": model_params_cfg["n_jobs"],
+        "verbose": model_params_cfg["verbose"],
+        "max_iter": suggest_int(trial, model_params_cfg, "max_iter"),
+        "C": suggest_float(trial, model_params_cfg, "C"),
+    }
+
+    return params
+
+
 def optimize_mlp_2_params(trial: Trial, model_params_cfg):
     params = {
         "early_stopping": model_params_cfg["early_stopping"],
@@ -120,8 +155,10 @@ def model_params(trial, cfg: DictConfig, classifier):
         params = optimize_mlp_8_params(trial, model_params_cfg)
     elif classifier == 'mlp_4':
         params = optimize_mlp_4_params(trial, model_params_cfg)
-    elif classifier == 'mlp_2':
-        params = optimize_mlp_2_params(trial, model_params_cfg)
+    elif classifier == 'logistic_l1':
+        params = optimize_logistic_l1_params(trial, model_params_cfg)
+    elif classifier == 'logistic_l2':
+        params = optimize_logistic_l2_params(trial, model_params_cfg)
     else:
         raise ValueError("Unsupported classifier parameters.")
     return params
@@ -173,10 +210,10 @@ def study(cfg: DictConfig, activity_id: int, classifier: str):
 
 @hydra.main(config_path="conf", config_name="config", version_base=None)
 def main(cfg: DictConfig):
-    # study(cfg, 11, 'xgb')
+    # study(cfg, 3, 'lgbm')
 
     for a in range(1, 16 + 1):
-        study(cfg, a, 'mlp_8')
+        study(cfg, a, 'lgbm')
 
 
 if __name__ == "__main__":

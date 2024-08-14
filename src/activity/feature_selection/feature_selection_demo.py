@@ -69,7 +69,7 @@ def feature_selection(data_path, sequence, choosefeaturenum):
         print('正在提取动作{}的重要特征'.format(se))  #
         # tempdata = pd.read_csv(r"../../datasets/featureimportant/feature_important{}_60.csv".format(se))
         # tempdata = pd.read_csv(rf"{se}_shap_importance_0618.csv".format(se))
-        # shap_summary.to_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance' ,
+        # shap_summary.to_csv(os.path.join(r'../../../output/activity/feature_importance_shap' ,
         #     f'{os.path.basename(self.data_path)}_{self.activity_id}_shap_importance.csv'), index=False
         # )
         tempdata = pd.read_csv(os.path.join(r'../../../output/activity/step_3_output_feature_importance',

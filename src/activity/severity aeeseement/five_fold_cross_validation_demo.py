@@ -380,9 +380,9 @@ class PDClassifier:
         # combined_results_row
         # 获取当前脚本文件所在目录
         # current_directory = os.path.dirname(os.path.abspath(__file__))
-        # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', file_path)
+        # file_path = os.path.join(r'../../../output/activity/severity aeeseement', file_path)
         file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', file_path)
-        # file_path = os.path.join(r'../../../output/activity/step_5_five_fold_cross_validation', '123.csv')
+        # file_path = os.path.join(r'../../../output/activity/severity aeeseement', '123.csv')
 
         try:
             # 尝试打开文件，如果文件不存在则创建并写入表头

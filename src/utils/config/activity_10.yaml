@@ -1,0 +1,112 @@
+activity_id: 10
+
+lgbm:
+  params:
+    objective: "multiclass"
+    num_class: 4
+    metric: "multi_logloss"
+    verbosity: -1
+    boosting_type: "gbdt"
+    num_threads: -1
+    max_depth: 6
+    learning_rate: 0.6722265126917167
+    num_leaves: 2
+    min_child_samples: 44
+    lambda_l1: 5.32362396290027
+    lambda_l2: 210.9285457524455
+xgb:
+  params:
+    objective: "multi:softprob"
+    num_class: 4  # 这个值可以根据具体情况调整
+    eval_metric: 'mlogloss'
+    verbosity: 0
+    seed: 0
+    num_boost_round: 5000
+    eta: 1
+    max_depth: 10
+    min_child_weights: 7
+    subsample: 0.8625835176000274
+    gamma: 4.745755879156528
+    lambda: 0.5072683482500008
+    alpha: 0.4439614863252417
+rf:
+  params:
+    bootstrap: True
+    random_state: 0
+    n_jobs: -1
+    verbose: 0
+    n_estimators: 108
+    max_depth: 5
+    min_samples_split: 4
+    max_features: 0.61
+mlp_2:
+  params:
+    early_stopping: true
+    random_state: 0
+    verbose: 0
+    alpha: 0.008024503754543956
+    learning_rate_init: 0.00002184
+    max_iter: 564
+mlp_4:
+  params:
+    early_stopping: true
+    random_state: 0
+    verbose: 0
+    alpha: 0.0004608728469106709
+    learning_rate_init: 0.00003699450881757207
+    max_iter: 258
+mlp_8:
+  params:
+    early_stopping: true
+    random_state: 0
+    verbose: 0
+    alpha: 0.09206
+    learning_rate_init: 0.04956
+    max_iter: 545
+logistic_l1:
+  params:
+    penalty: l1
+    solver: saga
+    random_state: 0
+    n_jobs: -1
+    verbose: 0
+    max_iter: 30
+    C: 832.62
+logistic_l2:
+  params:
+    penalty: l2
+    solver: saga
+    random_state: 0
+    n_jobs: -1
+    verbose: 0
+    max_iter: 30
+    C: 832.62
+
+svm_l1:
+  params:
+    penalty: l1
+    loss: squared_hinge
+    dual: false
+    C: 0.01
+    random_state: 0
+    max_iter: 1000
+    verbose: 0
+svm_l2:
+  params:
+    penalty: l2
+    loss: squared_hinge
+    dual: false
+    C: 0.01
+    random_state: 0
+    max_iter: 1000
+    verbose: 0
+knn:
+  params:
+    n_neighbors: 10
+    weights: distance
+    algorithm: auto
+    n_jobs: -1
+bayes:
+  params:
+    priors: null
+    var_smoothing: 0.000000009
