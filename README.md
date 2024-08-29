@@ -36,6 +36,7 @@ To set up the project locally, follow these steps:
    conda activate pd-severity-env
    pip install -r requirements.txt
    ```
+3. Download the data and organised it into `input/` and `output/` folder.
 
 ## Usage
 
