@@ -6,7 +6,9 @@ optuna.db
 # 0706User-specific stuff
 /.idea/
 input/
-output/
+#output/
+
+output/**/*
 # dont ignore the file sfloder structure
 !input/**/.gitignore
 !output/**/.gitkeep
