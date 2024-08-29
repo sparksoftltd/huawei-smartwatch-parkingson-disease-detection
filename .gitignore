@@ -8,9 +8,9 @@ optuna.db
 input/
 output/
 # dont ignore the file sfloder structure
-!input/**/*.gitignore
-!output/**/*.gitignore
-!example/**/*.gitignore
+!input/**/.gitignore
+!output/**/.gitkeep
+!example/**/.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
