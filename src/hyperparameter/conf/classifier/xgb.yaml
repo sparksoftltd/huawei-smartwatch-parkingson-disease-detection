@@ -10,7 +10,6 @@ params:
   eta:
     low: 0.5
     high: 5
-    log: true
     step: 0.01
 # 控制树结构的超参数
   max_depth:
@@ -26,7 +25,6 @@ params:
   gamma:
     low: 0
     high: 10
-    log: true
     step: 0.01
   lambda:
     low: 0

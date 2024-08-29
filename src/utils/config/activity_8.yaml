@@ -8,12 +8,12 @@ lgbm:
     verbosity: -1
     boosting_type: "gbdt"
     num_threads: -1
-    max_depth: 9
-    learning_rate: 0.27830478929189845
-    num_leaves: 63
-    min_child_samples: 42
-    lambda_l1: 13.97011229324224
-    lambda_l2: 103.72499367275658
+    max_depth: 6
+    learning_rate: 0.35
+    num_leaves: 31
+    min_child_samples: 47
+    lambda_l1: 7.22
+    lambda_l2: 89.37
 xgb:
   params:
     objective: "multi:softprob"
@@ -22,13 +22,13 @@ xgb:
     verbosity: 0
     seed: 0
     num_boost_round: 5000
-    eta: 0.5888518753760856
-    max_depth: 4
+    eta: 2.53
+    max_depth: 8
     min_child_weights: 0
-    subsample: 0.916309922773969
-    gamma: 7.781567509498505
-    lambda: 0.8700121482468192
-    alpha: 0.9786183422327
+    subsample: 0.5
+    gamma: 8.5
+    lambda: 0.22
+    alpha: 0.31
 rf:
   params:
     bootstrap: True
@@ -44,25 +44,25 @@ mlp_2:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 0.00011322324657886573
-    learning_rate_init: 0.0433566209925029
-    max_iter: 561
+    alpha: 1.5
+    learning_rate_init: 0.06053
+    max_iter: 580
 mlp_4:
   params:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 0.00011903944370575807
-    learning_rate_init: 0.03097612267361327
-    max_iter: 604
+    alpha:  0.7
+    learning_rate_init: 0.0123
+    max_iter: 273
 mlp_8:
   params:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 0.01359
-    learning_rate_init: 0.00009
-    max_iter: 483
+    alpha: 0.6
+    learning_rate_init: 0.00579
+    max_iter: 924
 logistic_l1:
   params:
     penalty: l1

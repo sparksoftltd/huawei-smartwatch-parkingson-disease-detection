@@ -1,4 +1,4 @@
-activity_id: 6
+activity_id: comb_3
 
 lgbm:
   params:
@@ -8,12 +8,13 @@ lgbm:
     verbosity: -1
     boosting_type: "gbdt"
     num_threads: -1
-    max_depth: 8
-    learning_rate: 0.57
-    num_leaves: 251
-    min_child_samples: 39
-    lambda_l1: 50.7
-    lambda_l2: 25.86
+    seed: 0
+    max_depth: 10
+    learning_rate: 0.46
+    num_leaves: 428
+    min_child_samples: 40
+    lambda_l1: 28.17
+    lambda_l2: 98.19
 xgb:
   params:
     objective: "multi:softprob"
@@ -22,47 +23,47 @@ xgb:
     verbosity: 0
     seed: 0
     num_boost_round: 5000
-    eta: 1.46
-    max_depth: 5
-    min_child_weights: 8
+    eta: 2.01
+    max_depth: 7
+    min_child_weights: 1
     subsample: 0.8
-    gamma: 5.5
-    lambda: 0.91
-    alpha: 0.23
+    gamma: 1.13
+    lambda: 0.35
+    alpha: 0.25
 rf:
   params:
     bootstrap: True
     random_state: 0
     n_jobs: -1
     verbose: 0
-    n_estimators: 199
-    max_depth: 7
+    n_estimators: 194
+    max_depth: 5
     min_samples_split: 8
-    max_features: 0.51
-mlp_2:
+    max_features: 0.501
+mlp_2:  #  paper used
   params:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 1.9
-    learning_rate_init: 0.07506
-    max_iter: 861
+    alpha: 0.5
+    learning_rate_init: 0.04673
+    max_iter: 954
 mlp_4:
   params:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 1.9
-    learning_rate_init: 0.05219
-    max_iter: 532
+    alpha: 1.1
+    learning_rate_init: 0.02399
+    max_iter: 469
 mlp_8:
   params:
     early_stopping: true
     random_state: 0
     verbose: 0
-    alpha: 1.0
-    learning_rate_init: 0.02324
-    max_iter: 842
+    alpha: 0.6
+    learning_rate_init: 0.02878
+    max_iter: 575
 logistic_l1:
   params:
     penalty: l1
@@ -70,8 +71,8 @@ logistic_l1:
     random_state: 0
     n_jobs: -1
     verbose: 0
-    max_iter: 12
-    C: 396.07
+    max_iter: 336
+    C: 431.89
 logistic_l2:
   params:
     penalty: l2
@@ -79,8 +80,8 @@ logistic_l2:
     random_state: 0
     n_jobs: -1
     verbose: 0
-    max_iter: 12
-    C: 396.07
+    max_iter: 336
+    C: 431.89
 svm_l1:
   params:
     penalty: l1

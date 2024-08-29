@@ -4,14 +4,19 @@ from typing import Callable, Union
 from omegaconf import DictConfig
 from optuna import Trial
 import numpy as np
+from decimal import Decimal
 
 
 def suggest_int(trial: Trial, cfg: DictConfig, *route: str) -> int:
     return _suggest(trial.suggest_int, cfg, *route)
 
 
-def suggest_float(trial: Trial, cfg: DictConfig, *route: str) -> float:
-    return _suggest(trial.suggest_float, cfg, *route)
+def suggest_float(trial: Trial, cfg: DictConfig, *route: str, float_round: int) -> float:
+    v = _suggest(trial.suggest_float, cfg, *route)
+    # approx the params
+    if float_round > 0:
+        v = round(v, float_round)
+    return v
 
 
 def _suggest(func: Callable, cfg: DictConfig, *route: str) -> Union[float, int]:
@@ -32,6 +37,7 @@ def _suggest(func: Callable, cfg: DictConfig, *route: str) -> Union[float, int]:
     else:
         v = d
     print(f'Fetching name: {name}={v} from {"/".join(route)}', flush=True)
+    v = round(v, 5)
     return v
 
 
@@ -40,6 +46,8 @@ def set_seed(seed: int):
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
+    os.environ["OMP_NUM_THREADS"] = "1"  # 控制 OpenMP 的线程数
+    os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线程数
     return seed
 
 

@@ -1,16 +1,17 @@
 defaults:
-  - classifier: lgbm  # 引用模型参数配置文件
+  - classifier: mlp_8 # 引用模型参数配置文件
   - _self_
 
 dataset:
   default:
-    data_path: "../../output/activity/feature_selection"
-    fold_groups_path: "../../input/activity/feature_importance_shap"
-    fold_groups_name: "fold_groups_new_with_combinations.csv"
-    severity_mapping: {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+    back_to_root: "../.."
+    data_path: "output/feature_selection"
+    fold_groups_path: "input/feature_extraction"
+    fold_groups_name:  "fold_groups_new_with_combinations.csv"
+    severity_mapping: {0: 0, 1: 1, 2: 2, 3: 3}
 
 optuna:
-  n_trials: 200
+  n_trials: 172
   timeout: 600  # 超参数优化的超时时间（秒）
   direction: "maximize"
   storage: "sqlite:///optuna.db"

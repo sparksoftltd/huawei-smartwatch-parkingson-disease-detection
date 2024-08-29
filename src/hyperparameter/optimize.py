@@ -8,6 +8,9 @@ from src.utils.utils import set_seed, suggest_int, suggest_float
 from src.utils.ModelTrainerEvaluator import ModelTrainer, ModelEvaluator
 from optuna import Trial
 
+os.environ["OMP_NUM_THREADS"] = "1"  # 控制 OpenMP 的线程数
+os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线程数
+
 # 获取当前文件所在的目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,13 +51,13 @@ def optimize_xgb_params(trial: Trial, model_params_cfg):
         "eval_metric": model_params_cfg["eval_metric"],
         "verbosity": model_params_cfg["verbosity"],
         "seed": model_params_cfg["seed"],
-        "eta": suggest_float(trial, model_params_cfg, "eta"),
+        "eta": suggest_float(trial, model_params_cfg, "eta", float_round=2),
         "max_depth": suggest_int(trial, model_params_cfg, "max_depth"),
         "min_child_weight": suggest_int(trial, model_params_cfg, "min_child_weights"),
-        "subsample": suggest_float(trial, model_params_cfg, "subsample"),
-        "gamma": suggest_float(trial, model_params_cfg, "gamma"),
-        "lambda": suggest_float(trial, model_params_cfg, "lambda"),
-        "alpha": suggest_float(trial, model_params_cfg, "alpha"),
+        "subsample": suggest_float(trial, model_params_cfg, "subsample", float_round=1),
+        "gamma": suggest_float(trial, model_params_cfg, "gamma", float_round=2),
+        "lambda": suggest_float(trial, model_params_cfg, "lambda", float_round=2),
+        "alpha": suggest_float(trial, model_params_cfg, "alpha", float_round=2),
     }
 
     return params
@@ -80,8 +83,8 @@ def optimize_mlp_8_params(trial: Trial, model_params_cfg):
         "early_stopping": model_params_cfg["early_stopping"],
         "random_state": model_params_cfg["random_state"],
         "verbose": model_params_cfg["verbose"],
-        "alpha": suggest_float(trial, model_params_cfg, "alpha"),
-        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init"),
+        "alpha": suggest_float(trial, model_params_cfg, "alpha", float_round=2),
+        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init", float_round=5),
         "max_iter": suggest_int(trial, model_params_cfg, "max_iter"),
     }
 
@@ -93,8 +96,8 @@ def optimize_mlp_4_params(trial: Trial, model_params_cfg):
         "early_stopping": model_params_cfg["early_stopping"],
         "random_state": model_params_cfg["random_state"],
         "verbose": model_params_cfg["verbose"],
-        "alpha": suggest_float(trial, model_params_cfg, "alpha"),
-        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init"),
+        "alpha": suggest_float(trial, model_params_cfg, "alpha", float_round=2),
+        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init", float_round=5),
         "max_iter": suggest_int(trial, model_params_cfg, "max_iter"),
     }
 
@@ -134,8 +137,8 @@ def optimize_mlp_2_params(trial: Trial, model_params_cfg):
         "early_stopping": model_params_cfg["early_stopping"],
         "random_state": model_params_cfg["random_state"],
         "verbose": model_params_cfg["verbose"],
-        "alpha": suggest_float(trial, model_params_cfg, "alpha"),
-        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init"),
+        "alpha": suggest_float(trial, model_params_cfg, "alpha", float_round=2),
+        "learning_rate_init": suggest_float(trial, model_params_cfg, "learning_rate_init", float_round=5),
         "max_iter": suggest_int(trial, model_params_cfg, "max_iter"),
     }
 
@@ -155,6 +158,8 @@ def model_params(trial, cfg: DictConfig, classifier):
         params = optimize_mlp_8_params(trial, model_params_cfg)
     elif classifier == 'mlp_4':
         params = optimize_mlp_4_params(trial, model_params_cfg)
+    elif classifier == 'mlp_2':
+        params = optimize_mlp_2_params(trial, model_params_cfg)
     elif classifier == 'logistic_l1':
         params = optimize_logistic_l1_params(trial, model_params_cfg)
     elif classifier == 'logistic_l2':
@@ -168,12 +173,13 @@ def outer_objective(cfg: DictConfig, activity_id: int, classifier: str):
     def objective(trial):
         dataset_cfg = cfg.dataset.default
         data_loader = PDDataLoader(
-            activity_id,
-            os.path.join(dataset_cfg.data_path, f"acc_data_activity_{activity_id}.csv"),
-            os.path.join(dataset_cfg.fold_groups_path, dataset_cfg.fold_groups_name),
+            [activity_id],
+            os.path.join(dataset_cfg.back_to_root, dataset_cfg.data_path, f"activity_{activity_id}.csv"),
+            os.path.join(dataset_cfg.back_to_root, dataset_cfg.fold_groups_path, dataset_cfg.fold_groups_name),
             dataset_cfg.severity_mapping
         )
         params = model_params(trial, cfg, classifier)
+        print(params)
         model_trainer = ModelTrainer(classifier, params)
         study = ModelEvaluator(data_loader, model_trainer)
         metrics = study.train_evaluate()
@@ -184,7 +190,6 @@ def outer_objective(cfg: DictConfig, activity_id: int, classifier: str):
 
 def study(cfg: DictConfig, activity_id: int, classifier: str):
     print(f'\n{OmegaConf.to_yaml(cfg)}')
-    set_seed(cfg.seed)
     expname = cfg.expname
     n_trials = cfg.optuna.n_trials
     assert cfg.classifier.name == classifier, "missing match classifier"
@@ -210,10 +215,11 @@ def study(cfg: DictConfig, activity_id: int, classifier: str):
 
 @hydra.main(config_path="conf", config_name="config", version_base=None)
 def main(cfg: DictConfig):
-    # study(cfg, 3, 'lgbm')
+    set_seed(cfg.seed)
+    # study(cfg, 15, 'mlp_2')
 
-    for a in range(1, 16 + 1):
-        study(cfg, a, 'lgbm')
+    for a in range(1, 2):
+        study(cfg, a, 'xgb')
 
 
 if __name__ == "__main__":

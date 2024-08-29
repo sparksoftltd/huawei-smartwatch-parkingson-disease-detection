@@ -7,9 +7,10 @@ from typing import Dict, List
 
 
 class PDDataLoader:
-    def __init__(self, activity_id: List[int], data_path: str, fold_groups_path: str, severity_mapping: Dict = None):
+    def __init__(self, activity_id: List[int], data_path: str, fold_groups_path: str,
+                 severity_mapping: Dict = None, **kwargs):
         if severity_mapping is None:
-            severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}  # 映射关系
+            severity_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}  # 映射关系
         self.data_path = data_path  # 手工特征文件路径
         self.activity_id = activity_id  # 从手工特征文件中选取指定activity_id对应的数据
         self.severity_mapping = severity_mapping  # 映射关系
@@ -133,19 +134,23 @@ class PDDataLoader:
 
 
 if __name__ == '__main__':
-    # 以单活动7为例
-    activity_id = [7]
-    data_path = "../../output/activity/step_4_feature_selection"
-    data_name = "acc_data.csv"
-    fold_groups_path = "../../input/activity/step_3_output_feature_importance"
-    fold_groups_name = "fold_groups_new_with_combinations 2.csv"
+    _back_to_root = "../.."
+    # 以单活动1为例
+    activity_id = [3]
+    data_path = "output/feature_selection"
+    data_name = f"activity_{activity_id[0]}.csv"
+    fold_groups_path = "input/feature_extraction"
+    fold_groups_name = "fold_groups_new_with_combinations.csv"
     severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
-    single_data = PDDataLoader(activity_id, os.path.join(data_path, data_name),
-                               os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
+
+    single_data = PDDataLoader(activity_id, os.path.join(_back_to_root, data_path, data_name),
+                               os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+                               severity_mapping=severity_mapping)
 
     # 以活动14 15 16为例
     comb_activity_id = [14, 15, 16]
-    comb_data_path = "../../output/activity/step_6_comb"
+    comb_data_path = "output/activity_combination"
     comb_data_name = "merged_activities_14_15_16_vertical.csv"
-    comb_data = PDDataLoader(comb_activity_id, os.path.join(comb_data_path, comb_data_name),
-                             os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
+    comb_data = PDDataLoader(comb_activity_id, os.path.join(_back_to_root, comb_data_path, comb_data_name),
+                             os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+                             severity_mapping=severity_mapping)

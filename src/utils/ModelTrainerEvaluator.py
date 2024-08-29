@@ -1,10 +1,9 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
 import lightgbm as lgb
 import xgboost as xgb
-from src.utils.PDDataLoader import PDDataLoader
-from src.utils import set_seed
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import accuracy_score, classification_report, precision_score, recall_score, confusion_matrix, \
@@ -19,11 +18,15 @@ import warnings
 from imblearn.over_sampling import RandomOverSampler
 import shap
 import yaml
-
+import seaborn as sns
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib import cm
 
 warnings.filterwarnings(
     "ignore", category=UserWarning, module="lightgbm.engine", lineno=172
 )
+
+
 # seed = set_seed(0)
 
 
@@ -55,6 +58,7 @@ class ModelTrainer:
             pass
         elif self.classifier == 'mlp_2':
             self.params['hidden_layer_sizes'] = (128, 64)
+            self.params['shuffle'] = False
             self.model = make_pipeline(StandardScaler(), MLPClassifier(**self.params))
         elif self.classifier == 'mlp_4':
             self.params['hidden_layer_sizes'] = (64, 32, 16, 8)
@@ -122,6 +126,9 @@ class ModelEvaluator:
                 xgb_test_X_ls = [xgb.DMatrix(test_X, label=np.full(test_X.shape[0], test_Y)) for test_X, test_Y in
                                  zip(test_X_ls, test_Y_ls)]
                 evallist = [(xgb_train, 'train'), (xgb_test_X_ls[0], 'test')]
+                self.model_trainer.params['random_state'] = 0
+                self.model_trainer.params['nthread'] = 1
+                self.model_trainer.params['tree_method'] = 'approx'
                 self.model = xgb.train(self.model_trainer.params, xgb_train,
                                        evals=evallist,
                                        early_stopping_rounds=50, verbose_eval=False)
@@ -235,22 +242,27 @@ class ModelEvaluator:
             'fold_metrics': fold_metrics  # 返回每个 fold 的指标
         }
 
-    def single_activity_shap_importance(self):
+    def shap_importance(self, back_to_root):
         if self.classifier == 'lgbm':
             explainer = shap.TreeExplainer(self.model)
             shap_values = explainer.shap_values(np.vstack(self.test_X))
-        # elif self.classifier in ['mlp_2', 'mlp_4', 'mlp_8']:
-        #     pass
-        #     # 减少背景数据样本数量 - 使用 shap.sample 或 shap.kmeans
-        #     background_data = shap.kmeans(self.test_X, 5)
-        #     # background_data = self.test_X[:10]
-        #     explainer = shap.KernelExplainer(lambda x: self.model.predict_proba(x), background_data)
-        #     shap_values = explainer.shap_values(self.test_X[:50])
+            # elif self.classifier in ['mlp_2', 'mlp_4', 'mlp_8']:
+            #     pass
+            #     # 减少背景数据样本数量 - 使用 shap.sample 或 shap.kmeans
+            #     background_data = shap.kmeans(self.test_X, 5)
+            #     # background_data = self.test_X[:10]
+            #     explainer = shap.KernelExplainer(lambda x: self.model.predict_proba(x), background_data)
+            #     shap_values = explainer.shap_values(self.test_X[:50])
 
             # 可视化
             shap_values_mean = np.mean(shap_values, axis=2)  # 计算所有类的shap均值
-            shap.summary_plot(shap_values_mean, np.vstack(self.test_X), feature_names=self.feature_name)
 
+            # plot_size = (8, 10)
+            # modify Feature name
+            feature_name = self.feature_name.str.replace('^acc_', '', regex=True)
+            plt.figure()  # 创建新的图形对象
+            shap.summary_plot(shap_values_mean, np.vstack(self.test_X), feature_names=feature_name, show=False,
+                              max_display=10, cmap='viridis')
             # 获取类数
             num_columns = shap_values.shape[2]
             # 生成列名
@@ -259,13 +271,62 @@ class ModelEvaluator:
             shap_values_class_mean = np.abs(shap_values).mean(axis=0)
             shap_summary = pd.DataFrame(shap_values.mean(axis=0), columns=column_names)
             shap_summary['shap_values_mean'] = shap_values_class_mean.mean(axis=1)
-            # 将特征名称作为第一列
-            shap_summary.insert(0, 'feature name', self.feature_name)
+            shap_summary.insert(0, 'feature name', feature_name)
             shap_summary = shap_summary.sort_values(by='shap_values_mean', ascending=False)
             # 将SHAP值保存到CSV文件
-            shap_summary.to_csv(os.path.join(r'../../output/activity/step_3_output_feature_importance',
-                                             f'activity {self.activity_id}_{self.classifier}_shap_importance.csv'),
+            shap_summary.to_csv(os.path.join(back_to_root, 'output/feature_importance_shap',
+                                             f'module {self.activity_id}_{self.classifier}_shap_importance.csv'),
                                 index=False)
+            output_shap_figure = os.path.join(back_to_root,
+                                              f'example/figure/feature importance on activity {self.activity_id}.png')
+
+            plt.title(f'Feature importance on activity ID {self.activity_id}', fontsize=20, fontweight="bold")
+            plt.savefig(output_shap_figure, bbox_inches='tight', dpi=450)
+            plt.tight_layout()  # 自动调整子图
+            plt.close()  # 绘制完成后关闭图形
+
+            # plot bar chart
+            # 将 shap_values_mean 包装成 Explanation 对象
+            shap_values_mean_exp = shap.Explanation(np.mean(np.abs(shap_values), axis=2), feature_names=feature_name)
+            # 使用自定义颜色绘制
+            # 创建颜色列表（使用 viridis 颜色映射）
+            colors = plt.cm.viridis(np.linspace(0, 1, 10))
+            shap.summary_plot(shap_values_mean_exp, np.vstack(self.test_X), plot_type="bar", feature_names=feature_name,
+                              show=False, max_display=10, color=colors)
+
+            plt.title(f'Feature ranking on activity ID {self.activity_id}', fontsize=20, fontweight="bold")
+            output_shap_rank_figure = os.path.join(back_to_root,
+                                                   f'example/figure/feature ranking on activity {self.activity_id}.png')
+            plt.savefig(output_shap_rank_figure, bbox_inches='tight', dpi=450)
+            plt.tight_layout()  # 自动调整子图
+            plt.close()  # 绘制完成后关闭图形
+
+            # save top 3 feature values and its SHAP value for each class
+            # 获取前 3 个特征
+            top_3_features = shap_summary['feature name'].head(3).tolist()
+            top_3_indices = [feature_name.get_loc(feature) for feature in top_3_features]
+
+            # 获取这 3 个特征在每个类别的 SHAP 值
+            top_3_shap_values = shap_values[:, top_3_indices, :]  # 形状为 (样本数, 3, 类别数)
+            # 创建结果 DataFrame
+            results_df = pd.DataFrame()
+
+            # 对于每个特征，添加实际数值和SHAP值
+            for i, feature_index in enumerate(top_3_indices):
+                # 第一列：该特征的实际数值
+                results_df[f'{top_3_features[i]}_value'] = np.vstack(self.test_X)[:, feature_index]
+
+                # 添加 SHAP 值列，列名为 class_{i}_特征名_SHAP
+                for class_idx in range(num_columns):
+                    results_df[f'class_{class_idx}_{top_3_features[i]}_SHAP'] = top_3_shap_values[:, i, class_idx]
+
+            results_df.to_csv(os.path.join(back_to_root, 'output/feature_importance_shap',
+                                           f'module {self.activity_id}_{self.classifier}_top_3_shap_importance.csv'),
+                              index=False)
+            return shap_values
+        else:
+            print("shap visualisation only valid for lgbm model")
+            return None
 
 
 def load_config(activity_id: int):
@@ -273,40 +334,48 @@ def load_config(activity_id: int):
     with open(config_path, 'r') as file:
         return yaml.safe_load(file)
 
+
 if __name__ == '__main__':
-    # activity_id = [3]
-    # classifier = 'lgbm'
-    # data_path = "../../output/activity/select_sensors"
-    # data_name = "acc_data.csv"
-    # fold_groups_path = "../../input/activity/feature_importance_shap"
+    _back_to_root = "../.."
+    # 以单活动1为例
+    # activity_id = [1]
+    # data_path = "output/feature_selection"
+    # data_name = f"activity_{activity_id[0]}.csv"
+    # fold_groups_path = "input/feature_extraction"
     # fold_groups_name = "fold_groups_new_with_combinations.csv"
-    # severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+    # severity_mapping = {0: 0, 1: 1, 2: 2, 3: 3}
+    # single_data = PDDataLoader(activity_id, os.path.join(_back_to_root, data_path, data_name),
+    #                            os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+    #                            severity_mapping=severity_mapping)
     #
     # config = load_config(activity_id[0])
+    # classifier = 'lgbm'
+    # # loading hyperparameters
+    # params = config[classifier]['params']
+    # print(params)
+    # model_trainer = ModelTrainer(classifier, params)
+    # study = ModelEvaluator(single_data, model_trainer)
+    # study.train_evaluate()
+    # study.shap_importance(_back_to_root)
+
+    # 以活动14 15 16为例
+    # comb_activity_id = [14, 15, 16]
+    # classifier = 'lgbm'
+    # comb_data_path = "output/activity_combination"
+    # comb_data_name = "merged_activities_14_15_16_horizontal.csv"
+    # fold_groups_path = "input/feature_extraction"
+    # fold_groups_name = "fold_groups_new_with_combinations.csv"
+    # severity_mapping = {0: 0, 1: 1, 2: 2, 3: 3}
+    #
+    # config = load_config(comb_activity_id[0])
     # # loading hyperparameters
     # params = config[classifier]['params']
     # print(params)
     #
-    # data_loader = PDDataLoader(activity_id, os.path.join(data_path, data_name),
-    #                            os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
-
-    # 以活动14 15 16为例
-    comb_activity_id = [14, 15, 16]
-    classifier = 'lgbm'
-    comb_data_path = "../../output/activity/step_6_comb"
-    comb_data_name = "merged_activities_14_15_16_horizontal.csv"
-    fold_groups_path = "../../input/activity/step_3_output_feature_importance"
-    fold_groups_name = "fold_groups_new_with_combinations 2.csv"
-    severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
-
-    config = load_config(comb_activity_id[0])
-    # loading hyperparameters
-    params = config[classifier]['params']
-    print(params)
-
-    comb_data = PDDataLoader(comb_activity_id, os.path.join(comb_data_path, comb_data_name),
-                             os.path.join(fold_groups_path, fold_groups_name), severity_mapping=severity_mapping)
-    model_trainer = ModelTrainer(classifier, params)
-    study = ModelEvaluator(comb_data, model_trainer)
-    study.train_evaluate()
-    study.single_activity_shap_importance()
+    # comb_data = PDDataLoader(comb_activity_id, os.path.join(_back_to_root, comb_data_path, comb_data_name),
+    #                          os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+    #                          severity_mapping=severity_mapping)
+    # model_trainer = ModelTrainer(classifier, params)
+    # study = ModelEvaluator(comb_data, model_trainer)
+    # study.train_evaluate()
+    # study.shap_importance(_back_to_root)
