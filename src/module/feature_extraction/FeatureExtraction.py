@@ -1,7 +1,6 @@
 import os
 import pandas as pd
-from utils import pd_utils
-
+from src.module.feature_extraction.feature_utils import pd_utils
 
 class FeatureExtraction:
     def __init__(self, data_dir_path, pd_num, activity_num, side_r, side_l, window_size=300, overlapping_rate=0.5,

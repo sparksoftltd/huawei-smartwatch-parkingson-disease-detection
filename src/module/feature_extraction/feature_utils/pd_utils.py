@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from scipy.signal import find_peaks
 from statsmodels.graphics.tsaplots import *
 from sklearn.preprocessing import StandardScaler

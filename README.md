@@ -45,37 +45,38 @@ Each module can be run independently depending on the task you need to perform. 
 - **Feature Extraction**:
 
   ```bash
-  python src/module/feature_extraction/FeatureExtraction.py
+  python example/feature_extraction_demo.py
   ```
   This command will extract features from your sensor data.
+
 
 - **Sensor Selection**:
 
   ```bash
-  python src/module/select_sensors/select_sensors.py
+  python example/select_sensors_demo.py
   ```
 
   Run this script to perform sensor selection.
 
-- **Feature Importance (SHAP)**:
-  ```bash
-  python src/module/feature_importance_shap/feature\ importance\ for\ shap.py
-  ```
-  Use this script to calculate and visualize feature importance using SHAP values.
 
-- 
+- **Feature Selection**:
 
-- **Severity Assessment**:
   ```bash
-  python src/module/severity_aeeseement/severity_assessment.py
+  python example/feature_selection_demo.py
   ```
-  This script assesses the severity of PD based on the extracted features.
 
-- **Hyperparameter Optimization**:
+  Run this script to perform feature selection.
+
+
+- **Severity assessment**:
+
   ```bash
-  python src/module/hyperparameter/comb_optimize.py
+  python example/severity_aeeseement_demo.py
   ```
-  Run hyperparameter optimization for the machine learning models.
+
+  Run this script to perform severity assessment (Take Activity 11 for example).
+
+
 
 ## Contributing
 
@@ -87,4 +88,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
 
 ## Contact
 
-For questions or support, please contact [your-email@example.com](mailto:your-email@example.com).
+For questions or support, please contact [xl.wang@sheffield.ac.uk](mailto:your-email@example.com).

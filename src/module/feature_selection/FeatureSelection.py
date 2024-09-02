@@ -224,7 +224,3 @@ if __name__ == '__main__':
         fs.save_important_feature()
         print(f"Saved activity data {i}")
 
-    # No standardisation
-    # fs = FeatureSelection(activity_id=11, back_to_root=back_to_root, sensors=['acc'], seed=0, standardisation=False)
-    # fs.save_important_feature()
-

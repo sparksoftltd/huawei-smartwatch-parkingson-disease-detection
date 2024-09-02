@@ -1,9 +1,8 @@
 import os.path
-
 import pandas as pd
 
 
-def select_data(column_names, data_dir_path, data_file_name, feature_name_dir_path, feature_name_file_name ):
+def select_data(column_names, back_to_root, data_dir_path, data_file_name, feature_name_dir_path, feature_name_file_name ):
     # 读取CSV文件
     # 组合完整路径
     data_csv_path = os.path.join(data_dir_path, data_file_name)
@@ -58,6 +57,7 @@ if __name__ == '__main__':
     # 只选择acc传感器
     select_data(
         column_names=['acc'],
+        back_to_root  = back_to_root,
         data_dir_path=os.path.join(back_to_root, data_dir_path),
         data_file_name=data_file_name,
         feature_name_dir_path=os.path.join(back_to_root, feature_name_dir_path),
