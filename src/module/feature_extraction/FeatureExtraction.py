@@ -58,7 +58,7 @@ class FeatureExtraction:
 
 if __name__ == '__main__':
     # 初始化参数
-    back_to_root = "../../.."
+    back_to_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
     data_dir_path = r"input/feature_extraction/raw/"
     pd_num = 135
     activity_num = 16

@@ -1,12 +1,12 @@
 import os
 import sys
 
-# get src
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
-
+# get project path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 # put src into sys.path
 sys.path.append(project_root)
-
+sys.path.append(project_src)
 from src.module.severity_aeeseement import SeverityAssessment
 
 

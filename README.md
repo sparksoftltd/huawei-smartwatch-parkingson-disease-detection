@@ -35,8 +35,13 @@ To set up the project locally, follow these steps:
    conda create --name pd-severity-env python=3.8
    conda activate pd-severity-env
    pip install -r requirements.txt
-   ```
-3. Download the data and organised it into `input/` and `output/` folder.
+
+3. **Download the data and organised it into `input/` and `output/` folder.**
+   
+   Ensure that the data of `input/feature_extraction` exists if you would like to execute the whole process below.
+
+
+
 
 ## Usage
 
