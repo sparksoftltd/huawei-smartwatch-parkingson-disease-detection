@@ -3,10 +3,10 @@
 # Xulong need
 src/hyperparameter/outputs/
 optuna.db
+src/hyperparameter/
 # 0706User-specific stuff
 /.idea/
 input/
-
 output/
 # dont ignore the file floder structure
 !output/**/.gitkeep
