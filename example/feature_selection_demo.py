@@ -23,4 +23,4 @@ for i in range(1, 16 + 1):
 
     # save activity data
     fs.save_important_feature()
-    print(f"Saved activity data {i}")
+    print(f"We have finished feature selection and saved activity data {i}")

@@ -4,7 +4,7 @@ import numpy as np
 import lightgbm as lgb
 from src.utils.PDDataLoader import PDDataLoader
 from sklearn.metrics import f1_score
-from autofeatselect import AutoFeatureSelect
+from src.module.feature_selection.autofeatselect import AutoFeatureSelect
 from src.utils import set_seed
 from typing import List
 
@@ -215,7 +215,7 @@ if __name__ == '__main__':
         fs = FeatureSelection(activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0)
 
         # single activity feature selection
-        # fs.single_activity_feature_selection()
+        fs.single_activity_feature_selection()
 
         # Analysis the performance for different num of features
         fs.single_activity_best_num_features()
