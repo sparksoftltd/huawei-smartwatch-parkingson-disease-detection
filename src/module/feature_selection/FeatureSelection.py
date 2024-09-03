@@ -10,8 +10,7 @@ from typing import List
 
 
 class FeatureSelection:
-    def __init__(self, activity_id: int, back_to_root: str, sensors: List, seed: int = 0,
-                 **kwargs):
+    def __init__(self, activity_id: int, back_to_root: str, sensors: List, seed: int = 0):
         self.activity_id = activity_id
         self.back_to_root = back_to_root
         self.seed = set_seed(seed)
@@ -21,16 +20,13 @@ class FeatureSelection:
         self.fold_groups_path = os.path.join(back_to_root, "input/feature_extraction")
         self.fold_groups_name = "fold_groups_new_with_combinations.csv"
         self.severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
-        self.standardisation = True
-        if 'standardisation' in kwargs:
-            self.standardisation = kwargs['standardisation']
         self.data_loader = self.init_data()
 
     def init_data(self):
         sensors = '_'.join(map(str, self.sensors))
         data_loader = PDDataLoader([self.activity_id], os.path.join(self.data_dir_path, sensors + "_data.csv"),
                                    os.path.join(self.fold_groups_path, self.fold_groups_name),
-                                   severity_mapping=self.severity_mapping, standardisation=self.standardisation)
+                                   severity_mapping=self.severity_mapping)
         return data_loader
 
     def identify_single_unique(self):
@@ -45,7 +41,7 @@ class FeatureSelection:
         num_feats = [c for c in self.data_loader.feature_name]
         self.data_loader.PD_data[num_feats] = self.data_loader.PD_data[num_feats].astype('float')
         train_X, train_Y, test_X_ls, test_Y_ls, train_ids, test_ids = self.data_loader.create_train_test_split(
-                                                                        0, self.data_loader.fold_groups[0])
+            0, self.data_loader.fold_groups[0])
         new_test_X = np.vstack(test_X_ls)
         new_test_Y_ls = []
         for bag_test_Y, bag_test_X in zip(test_Y_ls, test_X_ls):
@@ -66,12 +62,13 @@ class FeatureSelection:
                                           categorical_columns=[],
                                           seed=self.seed)
 
-        corr_features = feat_selector.calculate_correlated_features(static_features=None,
-                                                                    num_threshold=0.9,
-                                                                    cat_threshold=0.9)
+        feat_selector.calculate_correlated_features(static_features=None,
+                                                    num_threshold=0.9,
+                                                    cat_threshold=0.9)
         feat_selector.drop_correlated_features()
 
-        selection_methods = ['lgbm', 'xgb', 'rf', 'perimp', 'rfecv', 'boruta']
+        selection_methods = ['lgbm', 'xgb', 'rf', 'perimp',  'boruta', 'rfecv']
+
         final_importance_df = feat_selector.apply_feature_selection(selection_methods=selection_methods,
                                                                     lgbm_hyperparams=None,
                                                                     xgb_hyperparams=None,
@@ -200,17 +197,14 @@ class FeatureSelection:
         label_info = ['PatientID', 'activity_label', 'Severity_Level']
         data = self.data_loader.PD_data.loc[:, feature_column + label_info]
         activity_id_filtered_data = data[data['activity_label'] == self.activity_id]
-        if self.standardisation:
-            file = os.path.join(self.feature_selection_dir, f'activity_{self.activity_id}.csv')
-        else:  # no standardisation data is helpful to analyse the feature importance for SHAP
-            file = os.path.join(self.feature_selection_dir, f'activity_{self.activity_id}_no_standardisation.csv')
+        file = os.path.join(self.feature_selection_dir, f'activity_{self.activity_id}.csv')
         activity_id_filtered_data.to_csv(file, index=False)
 
 
 if __name__ == '__main__':
     back_to_root = "../../.."
 
-    for i in range(1, 16+1):
+    for i in range(1, 16 + 1):
         # instance feature selection
         fs = FeatureSelection(activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0)
 
@@ -223,4 +217,3 @@ if __name__ == '__main__':
         # save activity data
         fs.save_important_feature()
         print(f"Saved activity data {i}")
-

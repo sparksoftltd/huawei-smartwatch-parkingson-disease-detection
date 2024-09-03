@@ -193,7 +193,7 @@ def create_boosting_model(algorithm, modeling_type, hyperparams, numeric_columns
             model = xgb.XGBClassifier(**hyperparams)
         elif modeling_type == 'regression':
             model = xgb.XGBRegressor(**hyperparams)
-            
+
     if preprocessing_params is not None:
         preprocessing_pipeline = create_preporcessing_pipeline(numeric_columns=numeric_columns,
                                                                categorical_columns=categorical_columns, **preprocessing_params)

@@ -79,7 +79,7 @@ Each module can be run independently depending on the task you need to perform. 
   python example/severity_aeeseement_demo.py
   ```
 
-  Run this script to perform severity assessment (Take Activity 11 for example).
+  Run this script to perform severity assessment (Take all activity on 12 algorithms for example).
 
 
 

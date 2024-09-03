@@ -7,7 +7,7 @@ project_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src
 # put src into sys.path
 sys.path.append(project_root)
 sys.path.append(project_src)
-from src.module.feature_selection import FeatureSelection
+from src.module.feature_selection.FeatureSelection import FeatureSelection
 
 back_to_root = project_root
 

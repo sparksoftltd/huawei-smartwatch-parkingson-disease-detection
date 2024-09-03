@@ -32,6 +32,7 @@ np.int = int
 np.float = float
 np.bool = bool
 
+
 class UtilityFunctions:
     """
     A collection of utility functions for visualizing and plotting feature importance.

@@ -8,6 +8,7 @@ src/hyperparameter/
 /.idea/
 input/
 output/
+test.py
 # dont ignore the file floder structure
 !output/**/.gitkeep
 

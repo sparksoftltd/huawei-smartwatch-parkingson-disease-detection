@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # 只选择acc传感器
     select_data(
         column_names=['acc'],
-        back_to_root  = back_to_root,
+        back_to_root=back_to_root,
         data_dir_path=os.path.join(back_to_root, data_dir_path),
         data_file_name=data_file_name,
         feature_name_dir_path=os.path.join(back_to_root, feature_name_dir_path),
