@@ -69,13 +69,18 @@ class FeatureSelection:
 
         selection_methods = ['lgbm', 'xgb', 'rf', 'perimp',  'boruta', 'rfecv']
 
+        lgbm_hyperparams = {'learning_rate': 0.2, 'max_depth': 3, 'n_estimators': 50, 'num_leaves': 10,
+                            'random_state': self.seed, 'n_jobs': -1, 'importance_type': 'gain', 'verbose': -1
+                            }
+        rfecv_hyperparams = {'step': 3, 'n_jobs': -1, 'min_features_to_select': 3, 'cv': 5}
+
         final_importance_df = feat_selector.apply_feature_selection(selection_methods=selection_methods,
-                                                                    lgbm_hyperparams=None,
+                                                                    lgbm_hyperparams=lgbm_hyperparams,
                                                                     xgb_hyperparams=None,
                                                                     rf_hyperparams=None,
                                                                     lassocv_hyperparams=None,
                                                                     perimp_hyperparams=None,
-                                                                    rfecv_hyperparams=None,
+                                                                    rfecv_hyperparams=rfecv_hyperparams,
                                                                     boruta_hyperparams=None)
 
         method_to_importance_column = {

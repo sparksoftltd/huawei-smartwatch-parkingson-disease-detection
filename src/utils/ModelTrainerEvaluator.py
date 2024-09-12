@@ -27,6 +27,23 @@ warnings.filterwarnings(
 )
 
 
+def map_activity_ids(activity_ids):
+    # 定义映射字典
+    classifier_mapping = {
+        1: 'FT', 2: 'FOC', 3: 'PSM', 4: 'RHF', 5: 'LHF', 6: 'FN-L', 7: 'FN-R', 8: 'FRA', 9: 'WALK', 10: 'AFC',
+        11: 'DRINK', 12: 'PICK', 13: 'SIT', 14: 'STAND', 15: 'SWING', 16: 'DRAW'
+    }
+
+    # 使用列表推导式将数字映射为字符串
+    mapped_values = [classifier_mapping.get(id_, 'Unknown') for id_ in activity_ids]
+
+    # 如果列表长度为1，直接输出字符串内容
+    if len(mapped_values) == 1:
+        return mapped_values[0]
+
+    # 返回格式化后的字符串，如果长度大于1，输出带有方括号
+    return f"[{', '.join(mapped_values)}]"
+
 # seed = set_seed(0)
 
 
@@ -111,7 +128,7 @@ class ModelEvaluator:
                     lgb_train,
                     num_boost_round=500,
                     valid_sets=[lgb_train, lgb_test],
-                    callbacks=[lgb.early_stopping(stopping_rounds=50), lgb.log_evaluation(100)]
+                    callbacks=[lgb.early_stopping(stopping_rounds=50)]
                 )
                 y_pred = self.model.predict(new_test_X, num_iteration=self.model.best_iteration)
                 y_pred_labels = y_pred.argmax(axis=1)
@@ -280,8 +297,18 @@ class ModelEvaluator:
             output_shap_figure = os.path.join(back_to_root,
                                               f'example/figure/feature importance on activity {self.activity_id}.png')
 
-            plt.title(f'Feature importance on activity ID {self.activity_id}', fontsize=20, fontweight="bold")
-            plt.savefig(output_shap_figure, bbox_inches='tight', dpi=450)
+            plt.title(f'Feature importance on {map_activity_ids(self.activity_id)}', fontsize=26,
+                      # fontweight="bold"
+                      )
+            plt.xticks(fontsize=22)  # 横轴刻度字体大小
+            plt.yticks(fontsize=22)  # 纵轴刻度字体大小
+            plt.xlabel("SHAP value", fontsize=22)
+            # 获取当前图的 colorbar 对象
+            cbar = plt.gcf().axes[-1]  # 获取当前图的色条
+            # 设置 colorbar 的字体大小
+            cbar.tick_params(labelsize=22)
+            cbar.set_ylabel('Feature value', fontsize=22)
+            plt.savefig(output_shap_figure, bbox_inches='tight', dpi=300)
             plt.tight_layout()  # 自动调整子图
             plt.close()  # 绘制完成后关闭图形
 
@@ -294,10 +321,16 @@ class ModelEvaluator:
             shap.summary_plot(shap_values_mean_exp, np.vstack(self.test_X), plot_type="bar", feature_names=feature_name,
                               show=False, max_display=10, color=colors)
 
-            plt.title(f'Feature ranking on activity ID {self.activity_id}', fontsize=20, fontweight="bold")
+            plt.title(f'Feature ranking on {map_activity_ids(self.activity_id)}', fontsize=32,
+                      # fontweight="bold"
+                      )
+            plt.xticks(fontsize=28)  # 横轴刻度字体大小
+            plt.yticks(fontsize=28)  # 纵轴刻度字体大
+            plt.xlabel("Mean |SHAP value|", fontsize=28)
             output_shap_rank_figure = os.path.join(back_to_root,
                                                    f'example/figure/feature ranking on activity {self.activity_id}.png')
-            plt.savefig(output_shap_rank_figure, bbox_inches='tight', dpi=450)
+            plt.savefig(output_shap_rank_figure, bbox_inches='tight', dpi=300)
+
             plt.tight_layout()  # 自动调整子图
             plt.close()  # 绘制完成后关闭图形
 

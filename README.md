@@ -16,8 +16,6 @@ The project is organized into the following modules, each located in the `src/mo
 - **severity_aeeseement/**
   - **`severity_assessment.py`**: Implements the core logic for assessing the severity of PD based on the extracted features. The assessment could be based on predefined criteria or machine learning models.
   - **`activity_combination_loader.py`**: Loads and processes combinations of activities from sensor data to be used in the severity assessment.
-- **feature_importance_shap/**
-  - **`output_feature_importance_demo.py`**: Demonstrates the output of SHAP analysis, showcasing the most important features in a demo scenario.
 
 ## Setup and Installation
 

@@ -11,6 +11,9 @@ from src.module.feature_selection.FeatureSelection import FeatureSelection
 
 back_to_root = project_root
 
+# comments: For the feature selection method: REFCV, embedding the algorithm LightGBM;
+# You can try to reinstall LightGBM package if running time to long.
+
 for i in range(1, 16 + 1):
     # instance feature selection
     fs = FeatureSelection(activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0)
