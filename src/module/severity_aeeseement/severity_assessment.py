@@ -6,13 +6,14 @@ import pandas as pd
 from datetime import datetime
 from typing import List
 from src.utils.utils import set_seed
+import copy
 
 os.environ["OMP_NUM_THREADS"] = "1"  # 控制 OpenMP 的线程数
 os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线程数
 
 
 class SeverityAssessment:
-    def __init__(self, back_to_root: str, data_path: str, data_name: str, activity_id: List, classifier: str):
+    def __init__(self, back_to_root: str, data_path: str, data_name: str, activity_id: List, classifier: str, **kwargs):
         self.back_to_root = back_to_root
         self.activity_id = activity_id
         self.classifier = classifier
@@ -23,10 +24,9 @@ class SeverityAssessment:
         self.shap_importance = False
         self.data_loader = PDDataLoader(activity_id, os.path.join(self.back_to_root, self.data_path, self.data_name),
                                         os.path.join(self.back_to_root, self.fold_groups_path, self.fold_groups_name))
-        if len(activity_id) > 1:
-            self.single_activity = False
-        else:
-            self.single_activity = True
+        self.single_activity = len(activity_id) == 1
+        self.roc = kwargs.get('roc', False)
+        self.model_evaluator = None
         set_seed(0)
 
     def load_config(self):
@@ -51,11 +51,30 @@ class SeverityAssessment:
         # severity assessment
         print(f"classifier [{self.classifier}] on activity_id {config['activity_id']}")
         model_trainer = ModelTrainer(self.classifier, params)
-        study = ModelEvaluator(self.data_loader, model_trainer)
+        study = ModelEvaluator(self.data_loader, model_trainer, roc=self.roc)
         metrics = study.train_evaluate()
         if self.shap_importance:
             study.shap_importance(self.back_to_root)
+
+        self.model_evaluator = copy.deepcopy(study)
         return metrics
+
+
+def get_roc_curve(severity_assessment: SeverityAssessment):
+    severity_assessment.roc = True
+    severity_assessment.assessment()
+    return severity_assessment.model_evaluator.roc_result
+
+
+def get_roc_curve_class(severity_assessment: SeverityAssessment):
+    severity_assessment.roc = True
+    severity_assessment.assessment()
+    return severity_assessment.model_evaluator.roc_class_result
+
+
+def get_confusion_matrices(severity_assessment: SeverityAssessment):
+    metrics = severity_assessment.assessment()
+    return metrics.get('mean_confusion_matrix', False)
 
 
 def show_activity_shap_importance(severity_assessment: SeverityAssessment):
@@ -191,5 +210,8 @@ __all__ = [
     'SeverityAssessment',
     'show_activity_shap_importance',
     'save_assessment_result',
-    'save_comb_activity_assessment_result'
+    'save_comb_activity_assessment_result',
+    'get_roc_curve',
+    'get_roc_curve_class',
+    'get_confusion_matrices'
 ]

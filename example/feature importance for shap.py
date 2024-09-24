@@ -4,7 +4,7 @@ from src.module.severity_aeeseement import SeverityAssessment, show_activity_sha
 _back_to_root = ".."
 
 # example: activity_id = 11 (DRINK)
-activity_id =11
+activity_id = 11
 # First, set a severity assessment instance
 _data_path = "output/feature_selection"
 _data_name = f"activity_{activity_id}.csv"

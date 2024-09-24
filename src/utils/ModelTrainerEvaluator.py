@@ -18,9 +18,8 @@ import warnings
 from imblearn.over_sampling import RandomOverSampler
 import shap
 import yaml
-import seaborn as sns
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib import cm
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import label_binarize
 
 warnings.filterwarnings(
     "ignore", category=UserWarning, module="lightgbm.engine", lineno=172
@@ -43,6 +42,7 @@ def map_activity_ids(activity_ids):
 
     # 返回格式化后的字符串，如果长度大于1，输出带有方括号
     return f"[{', '.join(mapped_values)}]"
+
 
 # seed = set_seed(0)
 
@@ -88,7 +88,7 @@ class ModelTrainer:
 
 
 class ModelEvaluator:
-    def __init__(self, data_loader, model_trainer):
+    def __init__(self, data_loader, model_trainer, **kwargs):
         self.data_loader = data_loader
         self.model_trainer = model_trainer
         self.activity_id = data_loader.activity_id
@@ -96,10 +96,14 @@ class ModelEvaluator:
         self.model = model_trainer.model
         self.test_X = list()
         self.feature_name = data_loader.feature_name
+        self.roc = kwargs.get('roc', False)
+        self.roc_result = None
+        self.roc_class_result = None
         print("Training...")
 
-    def train_evaluate(self):
+    def train_evaluate(self, callback=None):
         total_pred_group_ls = []
+        total_pred_proba_group_ls = []
         total_test_Y_group_ls = []
         id_records_for_each_fold_dict = dict()
         for fold_num, test_ids in enumerate(self.data_loader.fold_groups):
@@ -154,16 +158,23 @@ class ModelEvaluator:
                 self.model.fit(train_X, train_Y)
                 self.test_X.append(np.vstack(test_X_ls))
 
-            y_pred_ls = self.predict_most_likely_class(test_X_ls)
+            y_pred_ls, y_pred_ls_proba = self.predict_most_likely_class(test_X_ls)
             # 将当前留一验证的病人级别的预测标签和真实标签记录
             total_pred_group_ls.append(y_pred_ls)
+            total_pred_proba_group_ls.append(y_pred_ls_proba)
             total_test_Y_group_ls.append(test_Y_ls)
-
-        # stack dataset
-        # self.test_X = np.vstack(self.test_X)
 
         # 指标估计
         metrics = ModelEvaluator._metrics_calculation(total_test_Y_group_ls, total_pred_group_ls)
+        if self.roc is True:
+            total_fpr_micro, total_tpr_micro, total_roc_auc_micro = (ModelEvaluator.
+                                                                     _calculate_roc_curve(total_pred_proba_group_ls,
+                                                                                          total_test_Y_group_ls))
+            self.roc_result = (total_fpr_micro, total_tpr_micro, total_roc_auc_micro)
+            total_fpr, total_tpr, total_roc_auc = (ModelEvaluator._calculate_roc_curve_class
+                                                   (total_pred_proba_group_ls,
+                                                    total_test_Y_group_ls))
+            self.roc_class_result = (total_fpr, total_tpr, total_roc_auc)
 
         # 打印返回的各个值
         print("Mean Accuracy:", metrics['mean_accuracy'])
@@ -176,6 +187,8 @@ class ModelEvaluator:
 
     def predict_most_likely_class(self, test_X_ls):
         y_pred_ls = []
+        y_pred_ls_proba = []
+        n_classes = len(set(self.data_loader.PD_data['Severity_Level']))
         for test_X in test_X_ls:
             if self.classifier in ['logistic_l1', 'logistic_l2', 'knn', 'bayes', 'rf', 'mlp_2', 'mlp_4', 'mlp_8']:
                 y_pred_prob = self.model.predict_proba(test_X)
@@ -191,8 +204,64 @@ class ModelEvaluator:
             else:
                 raise ValueError("Unsupported classifier type for prediction.")
             counts = np.bincount(y_pred)
+            # 如果 counts 的长度不足 n_classes，补齐为 0
+            if len(counts) < n_classes:
+                counts = np.pad(counts, (0, n_classes - len(counts)), 'constant')
+            # 计算总计数
+            total = np.sum(counts)
+            # 计算每个类别的概率
+            probabilities = counts / total
             y_pred_ls.append(np.argmax(counts))
-        return y_pred_ls
+            y_pred_ls_proba.append(probabilities)
+        return y_pred_ls, y_pred_ls_proba
+
+    @staticmethod
+    def _calculate_roc_curve_class(total_pred_proba_group_ls, total_test_Y_group_ls):
+        total_fpr = []
+        total_tpr = []
+        total_roc_auc = []
+
+        for fold_num, (y_pred_proba, y_true) in enumerate(zip(total_pred_proba_group_ls, total_test_Y_group_ls)):
+            n_classes = len(y_pred_proba[0])
+            y_true_bin = label_binarize(y_true, classes=np.arange(n_classes))
+            y_true_bin = np.array(y_true_bin)
+            y_pred_proba = np.array(y_pred_proba)
+            # 计算每个类的 ROC 曲线和 AUC
+            fpr = dict()
+            tpr = dict()
+            roc_auc = dict()
+            for i in range(n_classes):
+                fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_proba[:, i])
+                roc_auc[i] = auc(fpr[i], tpr[i])
+
+            total_fpr.append(fpr)
+            total_tpr.append(tpr)
+            total_roc_auc.append(roc_auc)
+
+        return total_fpr, total_tpr, total_roc_auc
+
+    @staticmethod
+    def _calculate_roc_curve(total_pred_proba_group_ls, total_test_Y_group_ls):
+        print("calculate_roc_curve")
+        total_fpr_micro = []
+        total_tpr_micro = []
+        total_roc_auc_micro = []
+
+        for fold_num, (y_pred_proba, y_true) in enumerate(zip(total_pred_proba_group_ls, total_test_Y_group_ls)):
+            n_classes = len(y_pred_proba[0])
+            y_true_bin = label_binarize(y_true, classes=np.arange(n_classes))
+            # 计算微平均 ROC 曲线和 AUC
+            y_true_bin = np.array(y_true_bin)
+            y_pred_proba = np.array(y_pred_proba)
+
+            fpr_micro, tpr_micro, _ = roc_curve(y_true_bin.ravel(), y_pred_proba.ravel())
+            roc_auc_micro = auc(fpr_micro, tpr_micro)
+
+            total_fpr_micro.append(fpr_micro)
+            total_tpr_micro.append(tpr_micro)
+            total_roc_auc_micro.append(roc_auc_micro)
+
+        return total_fpr_micro, total_tpr_micro, total_roc_auc_micro
 
     @staticmethod
     def _calculate_specificity(y_true, y_pred):
@@ -202,6 +271,26 @@ class ModelEvaluator:
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
         return specificity
 
+    @staticmethod
+    def _check_confusion_matrix_size(total_confusion_matrix_ls):
+        # 设定类的总数，例如对于4分类问题：
+        num_classes = 4
+
+        # 调整混淆矩阵的形状，使其为统一的方阵
+        adjusted_total_confusion_matrix_ls = []
+        for cm in total_confusion_matrix_ls:
+            if cm.shape != (num_classes, num_classes):
+                # 创建一个全零的方阵
+                new_cm = np.zeros((num_classes, num_classes))
+                # 将原来的混淆矩阵嵌入到新的矩阵中（假设原来的类编号在矩阵中表示的是正确的）
+                min_dim = min(cm.shape[0], num_classes)
+                new_cm[:min_dim, :min_dim] = cm[:min_dim, :min_dim]
+                adjusted_total_confusion_matrix_ls.append(new_cm)
+            else:
+                adjusted_total_confusion_matrix_ls.append(cm)
+        return adjusted_total_confusion_matrix_ls
+
+    @staticmethod
     def _metrics_calculation(total_test_Y_group_ls, total_pred_group_ls):
         print("Evaluating...")
         total_acc_ls = []
@@ -210,6 +299,7 @@ class ModelEvaluator:
         total_f1_ls = []
         total_specificity_ls = []
         report_ls = []
+        total_confusion_matrix_ls = []  # To save the confusion matrix on each fold
         fold_metrics = []  # 用于存储每个 fold 的指标
 
         for fold_num, (total_test_Y, total_pred) in enumerate(zip(total_test_Y_group_ls, total_pred_group_ls)):
@@ -218,6 +308,7 @@ class ModelEvaluator:
             total_recall = recall_score(total_test_Y, total_pred, zero_division=0, average='macro')
             total_f1 = f1_score(total_test_Y, total_pred, zero_division=0, average='macro')
             report = classification_report(total_test_Y, total_pred, zero_division=0)
+            total_confusion_matrix = confusion_matrix(total_test_Y, total_pred, normalize='true')
 
             # 调用 calculate_specificity 静态方法计算特异性
             specificity = ModelEvaluator._calculate_specificity(total_test_Y, total_pred)
@@ -228,6 +319,7 @@ class ModelEvaluator:
             total_f1_ls.append(total_f1)
             total_specificity_ls.append(specificity)
             report_ls.append(report)
+            total_confusion_matrix_ls.append(total_confusion_matrix)
 
             # 记录每个 fold 的指标
             fold_metrics.append({
@@ -248,6 +340,9 @@ class ModelEvaluator:
         all_total_test_Y = [item for sublist in total_test_Y_group_ls for item in sublist]
         all_total_pred = [item for sublist in total_pred_group_ls for item in sublist]
         all_report = classification_report(all_total_test_Y, all_total_pred, zero_division=0)
+        # Calculate the mean normalized confusion matrix across all folds
+        total_confusion_matrix_ls = ModelEvaluator._check_confusion_matrix_size(total_confusion_matrix_ls)
+        mean_confusion_matrix = np.round(np.mean(np.array(total_confusion_matrix_ls), axis=0), 2)
 
         return {
             'mean_accuracy': mean_acc,
@@ -256,7 +351,8 @@ class ModelEvaluator:
             'mean_f1': mean_f1,
             'mean_specificity': mean_specificity,
             'mean_report': all_report,
-            'fold_metrics': fold_metrics  # 返回每个 fold 的指标
+            'fold_metrics': fold_metrics,  # 返回每个 fold 的指标
+            'mean_confusion_matrix': mean_confusion_matrix
         }
 
     def shap_importance(self, back_to_root):
