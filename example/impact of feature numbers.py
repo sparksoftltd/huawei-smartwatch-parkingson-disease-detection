@@ -27,7 +27,7 @@ fs.single_activity_best_num_features()
 data = pd.read_csv(os.path.join(back_to_root, 'output/feature_selection',
                                 f'best_num_features_activity_{activity_id}.csv'))
 
-# 计算平均值和标准差
+
 mean_scores = data[['fold_1', 'fold_2', 'fold_3', 'fold_4', 'fold_5']].mean(axis=1)
 std_scores = data[['fold_1', 'fold_2', 'fold_3', 'fold_4', 'fold_5']].std(axis=1)
 
@@ -36,7 +36,6 @@ spl = make_interp_spline(data['num_features'], mean_scores, k=3)  # 使用三次
 mean_scores_smooth = spl(x_smooth)
 std_scores_smooth = make_interp_spline(data['num_features'], std_scores, k=3)(x_smooth)
 
-# 绘制折线图并添加标准差阴影
 plt.figure(figsize=(15, 6))
 plt.plot(x_smooth, mean_scores_smooth, label='Mean F1 Score', color='b')
 plt.fill_between(x_smooth, mean_scores_smooth - std_scores_smooth, mean_scores_smooth + std_scores_smooth, color='b', alpha=0.2, label='Standard Deviation')

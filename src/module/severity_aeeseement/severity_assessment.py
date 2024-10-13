@@ -8,8 +8,8 @@ from typing import List
 from src.utils.utils import set_seed
 import copy
 
-os.environ["OMP_NUM_THREADS"] = "1"  # 控制 OpenMP 的线程数
-os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线程数
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
 
 class SeverityAssessment:
@@ -98,19 +98,19 @@ def show_activity_shap_importance(severity_assessment: SeverityAssessment):
 def save_assessment_result(back_to_root: str, data_path: str, activity_list: list, classifier_list: list,
                            fold_groups_path: str, fold_groups_name: str, **kwargs):
     # data_path = "output/feature_selection"
-    # 用于存储所有结果的列表
+
     results = []
-    # 迭代所有活动 ID 和分类器组合
+
     for c in classifier_list:
         for a in activity_list:
-            # 创建 SeverityAssessment 实例并进行评估
+
             data_name = f"activity_{a}.csv"
             watch = kwargs.get('watch', False)
             sa = SeverityAssessment(back_to_root, data_path, data_name, fold_groups_path, fold_groups_name,
                                     [a], str(c), watch=watch)
             metrics = sa.assessment()
 
-            # 将评估结果格式化为 DataFrame 行
+
             row = {
                 'activity_id': a,
                 'classifier': c,
@@ -121,7 +121,7 @@ def save_assessment_result(back_to_root: str, data_path: str, activity_list: lis
                 'specificity_mean': metrics['mean_specificity'],
             }
 
-            # 添加每一折的结果
+
             for fold_metric in metrics['fold_metrics']:
                 fold_num = fold_metric['fold_num']
                 row[f'acc_fold_{fold_num}'] = fold_metric['accuracy']
@@ -130,9 +130,9 @@ def save_assessment_result(back_to_root: str, data_path: str, activity_list: lis
                 row[f'f1_fold_{fold_num}'] = fold_metric['f1']
                 row[f'specificity_fold_{fold_num}'] = fold_metric['specificity']
 
-            # 将当前行添加到结果列表中
+
             results.append(row)
-    # 保存到 CSV 文件
+
     save_data_path = "output/severity_assessment"
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_df = pd.DataFrame(results)
@@ -144,20 +144,17 @@ def save_assessment_result(back_to_root: str, data_path: str, activity_list: lis
 def save_comb_activity_assessment_result(back_to_root: str, activity_list: list, classifier_list: list,
                                          combination_mode: str):
     data_path = "output/activity_combination"
-    # 用于存储所有结果的列表
+
     results = []
-    # 迭代所有活动 ID 和分类器组合
+
     for c in classifier_list:
         for a in activity_list:
-            # 创建 SeverityAssessment 实例并进行评估
             assert isinstance(c, str), "error classifier type"
             assert isinstance(a, List), "combination should be a list type"
             activity_ids_str = "_".join(map(str, a))
             file_name = f"merged_activities_{activity_ids_str}_{combination_mode}.csv"
             comb_sa = SeverityAssessment(back_to_root, data_path, file_name, a, str(c))
             comb_metrics = comb_sa.assessment()
-
-            # 将评估结果格式化为 DataFrame 行
             row = {
                 'activity_id': a,
                 'classifier': c,
@@ -167,8 +164,6 @@ def save_comb_activity_assessment_result(back_to_root: str, activity_list: list,
                 'f1_mean': comb_metrics['mean_f1'],
                 'specificity_mean': comb_metrics['mean_specificity'],
             }
-
-            # 添加每一折的结果
             for fold_metric in comb_metrics['fold_metrics']:
                 fold_num = fold_metric['fold_num']
                 row[f'acc_fold_{fold_num}'] = fold_metric['accuracy']
@@ -177,9 +172,8 @@ def save_comb_activity_assessment_result(back_to_root: str, activity_list: list,
                 row[f'f1_fold_{fold_num}'] = fold_metric['f1']
                 row[f'specificity_fold_{fold_num}'] = fold_metric['specificity']
 
-            # 将当前行添加到结果列表中
+
             results.append(row)
-    # 保存到 CSV 文件
     save_data_path = "output/severity_assessment"
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_df = pd.DataFrame(results)
@@ -192,7 +186,7 @@ def save_comb_activity_assessment_result(back_to_root: str, activity_list: list,
 
 if __name__ == '__main__':
     _back_to_root = "../../.."
-    # # 单一活动测试
+
     activity_id = [1]
     _data_path = "output/feature_selection"
     _data_name = f"activity_{activity_id[0]}.csv"
@@ -202,29 +196,6 @@ if __name__ == '__main__':
     sa = SeverityAssessment(_back_to_root, _data_path, _data_name, fold_groups_path, fold_groups_name,
                             activity_id, 'xgb')
     sa.assessment()
-
-    # 全活动全算法测试
-    # classifiers = ['rf', 'xgb', 'lgbm', 'logistic_l1', 'logistic_l2', 'svm_l1', 'svm_l2', 'knn', 'bayes', 'mlp_2',
-    #                'mlp_4', 'mlp_8']
-    # activity_ids = list(range(1, 17))
-    # save_assessment_result(activity_ids, classifiers)
-
-    # # 可视化展示
-    # show_activity_shap_importance(sa)
-
-    # 多活动测试
-    # _activity_id = [14, 15, 16]
-    # combination_mode = 'horizontal'
-    # _data_path = "output/activity_combination"
-    # activity_ids_str = "_".join(map(str, _activity_id))
-    # _file_name = f"merged_activities_{activity_ids_str}_{combination_mode}.csv"
-    # sa = SeverityAssessment(_back_to_root, _data_path, _file_name, _activity_id, 'mlp_2')
-    # sa.assessment()
-
-    # 多活动多算法测试
-    # classifiers = ['xgb', 'lgbm', 'mlp_2']
-    # activity_ids = [[1, 2, 3], [14, 15, 16]]
-    # save_comb_activity_assessment_result(activity_ids, classifiers, 'horizontal')
 
 __all__ = [
     'SeverityAssessment',

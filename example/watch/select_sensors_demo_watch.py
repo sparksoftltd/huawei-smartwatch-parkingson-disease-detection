@@ -15,7 +15,7 @@ data_file_name = 'wrist_acc_feature_label.csv'
 feature_name_dir_path = 'input/feature_extraction/raw_watch/'
 feature_name_file_name = 'feature_name.csv'
 output_path = 'output/select_sensors/watch'
-# 只选择acc传感器
+
 select_data(
     column_names=['acc'],
     back_to_root=back_to_root,

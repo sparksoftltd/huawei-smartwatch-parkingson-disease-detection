@@ -56,7 +56,7 @@ models = {
         'total_roc_auc_micro': total_roc_auc_micro_lgbm
     }
 }
-# 绘制图表
+
 plt.figure(figsize=(10, 8))
 
 for model_name, model_data in models.items():
@@ -64,7 +64,7 @@ for model_name, model_data in models.items():
     total_tpr_micro = model_data['total_tpr_micro']
     total_roc_auc_micro = model_data['total_roc_auc_micro']
 
-    # 计算平均的fpr和tpr
+
     mean_fpr = np.linspace(0, 1, 100)
 
     # Interpolating tpr values to match the consistent fpr range
@@ -76,26 +76,25 @@ for model_name, model_data in models.items():
     mean_tpr = np.mean(tpr_resampled, axis=0)
     std_tpr = np.std(tpr_resampled, axis=0)
 
-    # 计算AUC均值和标准差
+
     mean_auc = np.mean(total_roc_auc_micro)
     std_auc = np.std(total_roc_auc_micro)
 
-    # 绘制ROC曲线
+
     plt.plot(mean_fpr, mean_tpr, lw=2, alpha=.8, label=f'{detail_model_name[model_name]} (AUC = {mean_auc:.2f} ± {std_auc:.2f})')
 
-    # 绘制标准差阴影
     tpr_upper = np.minimum(mean_tpr + std_tpr, 1)
     tpr_lower = np.maximum(mean_tpr - std_tpr, 0)
     plt.fill_between(mean_fpr, tpr_lower, tpr_upper, alpha=.2)
 
-# 添加对角线
+
 # plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r', alpha=.8)
 
-# 图表细节
+
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
-plt.xticks(fontsize=20)  # 横轴刻度字体大小
-plt.yticks(fontsize=20)  # 纵轴刻度字体大小
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
 plt.xlabel('False Positive Rate', fontsize=20)
 plt.ylabel('True Positive Rate', fontsize=20)
 plt.title('ROC curves for [WALK,AFC,DRINK]', fontsize=24)
@@ -103,7 +102,7 @@ plt.legend(loc="lower right", fontsize=20)
 plt.grid(alpha=0.3)
 output_shap_figure = os.path.join(_back_to_root,
                                               f'example/figure/ROC on activity {activity_id}.png')
-# 显示图像
+
 plt.savefig(output_shap_figure, bbox_inches='tight', dpi=300)
 plt.tight_layout()
 plt.show()

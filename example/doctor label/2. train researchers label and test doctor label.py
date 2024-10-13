@@ -19,7 +19,7 @@ def load_config(activity_id: int):
         return yaml.safe_load(file)
 
 
-# step 1. 分别获得 训练集 和 验证集
+
 
 _dir_path = os.path.join(project_root, "output/feature_selection/doctor_label")
 classifier = 'mlp_4'
@@ -31,7 +31,7 @@ for a in range(1, 17):
     config = load_config(a)
     params = config[classifier]['params']
     print('researcher assessing')
-    # step 2. 构建并训练模型
+
     researcher_model_trainer = ModelTrainer(classifier, params)
     researcher_study = ModelEvaluatorSimple(researcher_data, researcher_model_trainer)
     researcher_metrics = researcher_study.train_evaluate()
@@ -59,7 +59,7 @@ for a in range(1, 17):
         'f1': doctor_metrics['f1'],
         'specificity': doctor_metrics['specificity']
     }
-    # step 3. 保存结果
+
     results_df.append(row1)
     results_df.append(row2)
 

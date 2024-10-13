@@ -60,7 +60,7 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=3):
     return y
 
 def mAmp(data):  #
-    L = np.size(data, 0)
+    L = np.size(data, 0) #
     upper_envolope, low_envolope = envelope_extraction(data)
     mAmp = np.sum(upper_envolope-low_envolope)/L*1.0
     return mAmp
@@ -70,6 +70,7 @@ def envelope_extraction(signal):
     s = signal.astype(float )
     q_u = np.zeros(s.shape)
     q_l =  np.zeros(s.shape)
+
 
     #Prepend the first value of (s) to the interpolating values. This forces the model to use the same starting point for both the upper and lower envelope models.
     u_x = [0,]
@@ -104,6 +105,7 @@ def envelope_extraction(signal):
     upper_envelope_y[-1] = u_y[-1]
     lower_envelope_y[0] = l_y[0]
     lower_envelope_y[-1] = l_y[-1]
+
 
     last_idx, next_idx = 0, 0
     k, b = general_equation(u_x[0], u_y[0], u_x[1], u_y[1])
@@ -146,7 +148,7 @@ def envelope_extraction(signal):
     return upper_envelope_y, lower_envelope_y
 
 def general_equation(first_x, first_y, second_x, second_y):
-
+    # 斜截式 y = kx + b
     A = second_y - first_y
     B = first_x - second_x
     C = second_x * first_y - first_x * second_y
@@ -231,14 +233,14 @@ def corrcoef(x,y,z,a):
     za_cor = np.corrcoef(z, a)
     return xy_cor[0, 1], xz_cor[0, 1], xa_cor[0, 1], yz_cor[0, 1], ya_cor[0, 1], za_cor[0, 1]
 
-def fft_domain(data,N,fs):
+def fft_domain(data,N,fs):  #
     f_values, fft_values = get_fft_values(data, N, fs)
     damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt = base(fft_values)
     drms = np.sqrt((np.square(fft_values).mean()))  # rms
     return damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt, drms
 
 
-def psd_domain(data,N,fs):
+def psd_domain(data,N,fs):  #
     p_values, psd_values = get_psd_values(data, N, fs)
     damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt = base(psd_values)
     drms = np.sqrt((np.square(psd_values).mean()))  # rms
@@ -274,7 +276,7 @@ def get_psd_values(y_values, N, fs):
 
 def infor(data):
     # a = pd.value_counts(data) / len(data)
-    a = pd.Series(data).value_counts() / len(data)
+    a = pd.Series(data).value_counts() / len(data)   # OK , xiyang?
     return sum(np.log2(a) * a * (-1))
 
 def get_fft_values(y_values, N, fs):

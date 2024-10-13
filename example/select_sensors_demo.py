@@ -14,7 +14,7 @@ data_dir_path = 'output/feature_extraction'
 data_file_name = 'wristr_acc_gyro_mag_feature_label.csv'
 feature_name_dir_path = 'input/feature_extraction/raw/'
 feature_name_file_name = 'feature_name.csv'
-# 只选择acc传感器
+
 select_data(
     column_names=['acc'],
     back_to_root=back_to_root,

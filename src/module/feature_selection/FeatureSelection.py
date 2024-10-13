@@ -173,7 +173,7 @@ class FeatureSelection:
 
         if not results_df.empty:
             best_num_features = results_df.loc[results_df['mean_score'].idxmax(), 'num_features']
-            print(f'最佳特征数量: {best_num_features}')
+            print(f'best number of features: {best_num_features}')
             print(results_df)
             results_df.to_csv(
                 os.path.join(self.feature_selection_dir, f'best_num_features_activity_{self.activity_id}.csv'),

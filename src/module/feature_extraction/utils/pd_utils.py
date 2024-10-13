@@ -1,10 +1,11 @@
+import numpy as np
+import pandas as pd
 from scipy.signal import find_peaks
 from statsmodels.graphics.tsaplots import *
 from sklearn.preprocessing import StandardScaler
 import os
 
 from .import tremor_utils
-
 
 
 def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
@@ -23,10 +24,14 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
     peak_num = len(peaks_t)
     t_value = np.arange(len(z_filter))
     t_peakmax = np.argsort(z_filter[peaks_t])[-1]
-
+    # 暂时不用
+    # sampley = tremor_utils.sampEn(t_value[peaks_t], 3, 500)
+    # samplex = tremor_utils.sampEn(z_filter[peaks_t], 3, 1)
+    # infory = tremor_utils.infor(t_value[peaks_t])
+    # inforx = tremor_utils.infor(z_filter[peaks_t])
 
     # t_peakmax_X = t_value[peaks_t[t_peakmax]]
-    t_peakmax_Y = z_filter[peaks_t[t_peakmax]]  #
+    t_peakmax_Y = z_filter[peaks_t[t_peakmax]]
     t_peak_y = z_filter[peaks_t]
     dyski_num = len(t_peak_y[(t_peak_y < t_peakmax_Y - mph)])
 
@@ -34,13 +39,8 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
     a_values, autocorr_values = tremor_utils.get_autocorr_values(z_filter, N, fs)
     peaks4, _ = find_peaks(autocorr_values)
     auto_peak_num = len(peaks4)
-    if len(peaks4) > 0:
-        index_peakmax = np.argsort(autocorr_values[peaks4])[-1]
-        auto_y = autocorr_values[peaks4[index_peakmax]]
-    else:
-        index_peakmax = 0
-        auto_y = 0
-
+    index_peakmax = np.argsort(autocorr_values[peaks4])[-1]
+    auto_y = autocorr_values[peaks4[index_peakmax]]  #
 
     # whole
     peak_num1 = 2
@@ -78,13 +78,13 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
         data2 = y[i:i + windowsize]
         data3 = z[i:i + windowsize]
         data4 = ACCW2[i:i + windowsize]
-        data1 = data1.values
+        data1 = data1.values  #
         data2 = data2.values
         data3 = data3.values
         data4 = data4.values
-
-        peaks_normal[j, :] = peak_num
-        peaks_abnormal[j, :] = dyski_num
+        # ****************************************
+        peaks_normal[j, :] = peak_num  #
+        peaks_abnormal[j, :] = dyski_num  #
 
         fea_autoy[j, :] = auto_y
         fea_auto_num[j, :] = auto_peak_num
@@ -119,7 +119,7 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
         autocorr_peak_a[j, :] = tremor_utils.auto_peak_xy(data4, N, fs, peak_num1)
 
         assert 0 <= overlapping < 1
-        i = int(i + windowsize * (1-overlapping) - 1)
+        i = int(i + windowsize * (1-overlapping) - 1)  #
         j = j + 1
 
     # whole特征
@@ -133,110 +133,95 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
 
     Feat = np.c_[fea_whole, f1, fx, fy, fz, fa]
 
-    Feat2 = np.zeros((j, Feat.shape[1]))
+    Feat2 = np.zeros((j, Feat.shape[1]))  #
     Feat2[0:j, :] = Feat[0:j, :]
     Feat2 = pd.DataFrame(Feat2)
     return Feat2
 
-def FeatureExtractWithProcess(patients_id, activity_id, data_path, side, fea_column, window_size, overlapping_rate,
+
+def FeatureExtractWithProcess(pd_num, activity_num, data_path, side, fea_column, window_size, overlapping_rate,
                               frequency):
     Feature = pd.DataFrame()
-    for pdn in patients_id:
-        for acn in activity_id:
+    for pdn in range(1, pd_num + 1, 1):
+        for acn in range(1, activity_num + 1, 1):
             # select one side data
             filefullpath = data_path + r"person{}/{}_session{}_{}.csv".format(pdn, pdn, acn, side)
             if not os.path.exists(filefullpath):
                 continue
             data = pd.read_csv(filefullpath, header=0)
-            if 'Acc_x_100' not in data.columns:
-                data = data.drop(0)
+            data = data.drop(0)  #
 
             # new_column_labels = {"Accel_WR_X_CAL": "wr_acc_x", "Accel_WR_Y_CAL": "wr_acc_y",
             #                      "Accel_WR_Z_CAL": "wr_acc_z", "Gyro_X_CAL": "gyro_x", "Gyro_Y_CAL": "gyro_y",
             #                      "Gyro_Z_CAL": "gyro_z"}
-            new_column_labels = {# shimmer
-                                 "Accel_WR_X_CAL": "wr_acc_x",
-                                 "Accel_WR_Y_CAL": "wr_acc_y",
-                                 "Accel_WR_Z_CAL": "wr_acc_z",
-                                 "Gyro_X_CAL": "gyro_x",
-                                 "Gyro_Y_CAL": "gyro_y",
-                                 "Gyro_Z_CAL": "gyro_z",
-                                 "Mag_X_CAL": "mag_x",
-                                 "Mag_Y_CAL": "mag_y",
-                                 "Mag_Z_CAL": "mag_z",
-                                # watch
-                                 "Acc_x_100": "wr_acc_x",
-                                 "Acc_y_100": "wr_acc_y",
-                                 "Acc_z_100": "wr_acc_z",
-                                 "Gyro_x_100": "gyro_x",
-                                 "Gyro_y_100": "gyro_y",
-                                 "Gyro_z_100": "gyro_z",
-                                 }
+            # =====================
+            new_column_labels = {"Accel_WR_X_CAL": "wr_acc_x", "Accel_WR_Y_CAL": "wr_acc_y",
+                                 "Accel_WR_Z_CAL": "wr_acc_z", "Gyro_X_CAL": "gyro_x", "Gyro_Y_CAL": "gyro_y",
+                                 "Gyro_Z_CAL": "gyro_z", "Mag_X_CAL": "mag_x", "Mag_Y_CAL": "mag_y",
+                                 "Mag_Z_CAL": "mag_z"}
+            # ===================
             data = data.rename(columns=new_column_labels)
+            # ================
 
-            if all(col in data.columns for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]):
-                for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]:
-                    # data[col] = pd.to_numeric(data[col], errors='coerce')
-                    data[col] = data[col].astype('float64')
-            if all(col in data.columns for col in ["gyro_x", "gyro_y", "gyro_z"]):
-                for col in ["gyro_x", "gyro_y", "gyro_z"]:
-                    # data[col] = pd.to_numeric(data[col], errors='coerce')
-                    data[col] = data[col].astype('float64')
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                for col in ["mag_x", "mag_y", "mag_z"]:
-                    data[col] = data[col].astype('float64')
-
+            for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]:
+                data[col] = data[col].astype('float64')
+            for col in ["gyro_x", "gyro_y", "gyro_z"]:
+                data[col] = data[col].astype('float64')
+            # ===============
+            for col in ["mag_x", "mag_y", "mag_z"]:
+                data[col] = data[col].astype('float64')
+            # ========
             data["acca"] = np.sqrt(
                 data["wr_acc_x"] * data["wr_acc_x"] + data["wr_acc_y"] * data["wr_acc_y"] + data["wr_acc_z"] * data[
-                    "wr_acc_z"])
+                    "wr_acc_z"])  #
             data["gyroa"] = np.sqrt(
                 data["gyro_x"] * data["gyro_x"] + data["gyro_y"] * data["gyro_y"] + data["gyro_z"] * data["gyro_z"])
-
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                data["maga"] = np.sqrt(
-                    data["mag_x"] * data["mag_x"] + data["mag_y"] * data["mag_y"] + data["mag_z"] * data["mag_z"])
-
+            # ======================
+            data["maga"] = np.sqrt(
+                data["mag_x"] * data["mag_x"] + data["mag_y"] * data["mag_y"] + data["mag_z"] * data["mag_z"])
+            # =========================
             accdata = data[["wr_acc_x", "wr_acc_y", "wr_acc_z", "acca"]]
             gyrodata = data[["gyro_x", "gyro_y", "gyro_z", "gyroa"]]
-
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                magdata = data[["mag_x", "mag_y", "mag_z", "maga"]]
-
+            # ======================
+            magdata = data[["mag_x", "mag_y", "mag_z", "maga"]]
+            # ======================
             accdata = accdata.values
             gyrodata = gyrodata.values
-
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                magdata = magdata.values
+            # ===================
+            magdata = magdata.values
+            # ==================
 
             accdata = StandardScaler().fit_transform(accdata)  # z-score
             gyrodata = StandardScaler().fit_transform(gyrodata)
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                magdata = StandardScaler().fit_transform(magdata)
+            magdata = StandardScaler().fit_transform(magdata)
             databand_acc = accdata.copy()
             databand_gyro = gyrodata.copy()
-
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                databand_mag = magdata.copy()
+            # =========================
+            databand_mag = magdata.copy()
+            # =========================
 
             for k in range(0, 4):
-                databand_acc[:, k] = tremor_utils.butter_bandpass_filter(accdata[:, k], 0.3, 17, 200, order=3)   # 滤波
-                databand_gyro[:, k] = tremor_utils.butter_bandpass_filter(gyrodata[:, k], 0.3, 17, 200, order=3)
-                if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):# 滤波
-                    databand_mag[:, k] = tremor_utils.butter_bandpass_filter(magdata[:, k], 0.3, 17, 200, order=3)  # 滤波
+                databand_acc[:, k] = tremor_utils.butter_bandpass_filter(accdata[:, k], 0.3, 17, 200, order=3)   #
+                databand_gyro[:, k] = tremor_utils.butter_bandpass_filter(gyrodata[:, k], 0.3, 17, 200, order=3)  #
+                databand_mag[:, k] = tremor_utils.butter_bandpass_filter(magdata[:, k], 0.3, 17, 200, order=3)  #
 
             databand_acc = pd.DataFrame(databand_acc)
             databand_gyro = pd.DataFrame(databand_gyro)
+            # ========================
+            databand_mag = pd.DataFrame(databand_mag)
+            # =========================
 
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                databand_mag = pd.DataFrame(databand_mag)
+            # # ==========================================================
+            # databand = pd.concat([databand_acc, databand_gyro], axis=1)
+            # datax = databand.iloc[:, 0]
+            # datay = databand.iloc[:, 1]
+            # dataz = databand.iloc[:, 2]
+            # acca = databand.iloc[:, 3]
+            # feature = featureExtract(datax, datay, dataz, acca, window_size, overlapping_rate, frequency)
 
-            # # =================================================================
+            # # ==========================================================
             feature_ls = []
-            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
-                databand_list = [databand_acc, databand_gyro, databand_mag]
-            else:
-                databand_list = [databand_acc, databand_gyro]
-            for databand in databand_list:
+            for databand in [databand_acc, databand_gyro, databand_mag]:
                 datax = databand.iloc[:, 0]
                 datay = databand.iloc[:, 1]
                 dataz = databand.iloc[:, 2]

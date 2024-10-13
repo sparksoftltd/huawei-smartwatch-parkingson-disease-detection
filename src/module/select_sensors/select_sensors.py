@@ -4,13 +4,12 @@ import pandas as pd
 
 def select_data(column_names, back_to_root, data_dir_path, data_file_name, feature_name_dir_path,
                 feature_name_file_name, output_path):
-    # 读取CSV文件
-    # 组合完整路径
+
     data_csv_path = os.path.join(data_dir_path, data_file_name)
     feature_name_csv_path = os.path.join(feature_name_dir_path, feature_name_file_name)
 
     try:
-        # 读取CSV文件
+
         df_read = pd.read_csv(feature_name_csv_path)
         data_read = pd.read_csv(data_csv_path)
     except FileNotFoundError as e:
@@ -56,7 +55,7 @@ if __name__ == '__main__':
     feature_name_dir_path = 'input/feature_extraction/raw/'
     feature_name_file_name = 'feature_name.csv'
     output_path = 'output/select_sensors'
-    # 只选择acc传感器
+
     select_data(
         column_names=['acc'],
         back_to_root=back_to_root,

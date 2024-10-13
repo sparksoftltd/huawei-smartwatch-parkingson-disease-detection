@@ -35,13 +35,13 @@ sns.heatmap(confusion_matrix, annot=True, cmap='Blues', xticklabels=class_labels
 # Set titles and labels
 plt.xlabel('Predicted Label', fontsize=24)
 plt.ylabel('True Label', fontsize=24)
-plt.xticks(fontsize=20)  # 横轴刻度字体大小
-plt.yticks(fontsize=20)  # 纵轴刻度字体大小
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
 
 
 output_shap_figure = os.path.join(_back_to_root,
                                               f'example/figure/confusion metrics on activity {activity_id} watch.png')
-# 显示图像
+
 plt.savefig(output_shap_figure, bbox_inches='tight', dpi=300)
 plt.tight_layout()
 plt.show()

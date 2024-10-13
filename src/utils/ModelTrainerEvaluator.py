@@ -28,20 +28,16 @@ warnings.filterwarnings(
 
 
 def map_activity_ids(activity_ids):
-    # 定义映射字典
     classifier_mapping = {
         1: 'FT', 2: 'FOC', 3: 'PSM', 4: 'RHF', 5: 'LHF', 6: 'FN-L', 7: 'FN-R', 8: 'FRA', 9: 'WALK', 10: 'AFC',
         11: 'DRINK', 12: 'PICK', 13: 'SIT', 14: 'STAND', 15: 'SWING', 16: 'DRAW'
     }
 
-    # 使用列表推导式将数字映射为字符串
     mapped_values = [classifier_mapping.get(id_, 'Unknown') for id_ in activity_ids]
 
-    # 如果列表长度为1，直接输出字符串内容
     if len(mapped_values) == 1:
         return mapped_values[0]
 
-    # 返回格式化后的字符串，如果长度大于1，输出带有方括号
     return f"[{', '.join(mapped_values)}]"
 
 
@@ -274,15 +270,13 @@ class ModelEvaluator:
 
     @staticmethod
     def _check_confusion_matrix_size(total_confusion_matrix_ls):
-        # 设定类的总数，例如对于4分类问题：
         num_classes = 4
-        # 调整混淆矩阵的形状，使其为统一的方阵
         adjusted_total_confusion_matrix_ls = []
         for cm in total_confusion_matrix_ls:
             if cm.shape != (num_classes, num_classes):
-                # 创建一个全零的方阵
+
                 new_cm = np.zeros((num_classes, num_classes))
-                # 将原来的混淆矩阵嵌入到新的矩阵中（假设原来的类编号在矩阵中表示的是正确的）
+
                 min_dim = min(cm.shape[0], num_classes)
                 new_cm[:min_dim, :min_dim] = cm[:min_dim, :min_dim]
                 adjusted_total_confusion_matrix_ls.append(new_cm)
@@ -376,8 +370,7 @@ class ModelEvaluatorSimple:
         self.roc_class_result = None
         print("Training...")
 
-    def train_evaluate(self):  # lgbm 和 xgb 暂不支持
-        # 创建一个 RandomOverSampler 实例以验证安装成功
+    def train_evaluate(self):
         ros = RandomOverSampler(random_state=0)
         train_x, train_y = self.data_loader.train_data
         test_x_ls, test_y_ls = self.data_loader.test_data
@@ -397,7 +390,7 @@ class ModelEvaluatorSimple:
                                                    (test_y_ls, y_pred_ls_proba))
             self.roc_class_result = (total_fpr, total_tpr, total_roc_auc)
 
-        # 打印返回的各个值
+
         print("Accuracy:", metrics['accuracy'])
         print("Precision:", metrics['precision'])
         print("Recall:", metrics['recall'])
@@ -443,7 +436,7 @@ class ModelEvaluatorSimple:
         y_true_bin = label_binarize(y_true, classes=np.arange(n_classes))
         y_true_bin = np.array(y_true_bin)
         y_pred_proba = np.array(y_pred_proba)
-        # 计算每个类的 ROC 曲线和 AUC
+
         fpr = dict()
         tpr = dict()
         roc_auc = dict()
@@ -458,7 +451,6 @@ class ModelEvaluatorSimple:
         print("calculate_roc_curve")
         n_classes = len(y_pred_proba[0])
         y_true_bin = label_binarize(y_true, classes=np.arange(n_classes))
-        # 计算微平均 ROC 曲线和 AUC
         y_true_bin = np.array(y_true_bin)
         y_pred_proba = np.array(y_pred_proba)
 
@@ -477,15 +469,13 @@ class ModelEvaluatorSimple:
 
     @staticmethod
     def _check_confusion_matrix_size(cm):
-        # 设定类的总数，例如对于4分类问题：
         num_classes = 4
 
-        # 调整混淆矩阵的形状，使其为统一的方阵
         adjusted_total_confusion_matrix = []
         if cm.shape != (num_classes, num_classes):
-            # 创建一个全零的方阵
+
             new_cm = np.zeros((num_classes, num_classes))
-            # 将原来的混淆矩阵嵌入到新的矩阵中（假设原来的类编号在矩阵中表示的是正确的）
+
             min_dim = min(cm.shape[0], num_classes)
             new_cm[:min_dim, :min_dim] = cm[:min_dim, :min_dim]
             adjusted_total_confusion_matrix = new_cm
@@ -503,8 +493,6 @@ class ModelEvaluatorSimple:
         f1 = f1_score(test_y_ls, y_pred_ls, zero_division=0, average='macro')
         report = classification_report(test_y_ls, y_pred_ls, zero_division=0)
         total_confusion_matrix = confusion_matrix(test_y_ls, y_pred_ls, normalize='true')
-
-        # 调用 calculate_specificity 静态方法计算特异性
         specificity = ModelEvaluatorSimple._calculate_specificity(test_y_ls, y_pred_ls)
         # Calculate the mean normalized confusion matrix across all folds
         total_confusion_matrix = ModelEvaluatorSimple._check_confusion_matrix_size(total_confusion_matrix)
@@ -522,7 +510,7 @@ class ModelEvaluatorSimple:
 
 if __name__ == '__main__':
     _back_to_root = "../.."
-    # 以单活动1为例
+
     activity_id = [1]
     data_path = "output/feature_selection"
     data_name = f"activity_{activity_id[0]}.csv"
@@ -543,7 +531,7 @@ if __name__ == '__main__':
     study.train_evaluate()
     study.shap_importance(_back_to_root)
 
-    # 以活动14 15 16为例
+    # sample as activity 14 15 16
     # comb_activity_id = [14, 15, 16]
     # classifier = 'lgbm'
     # comb_data_path = "output/activity_combination"
