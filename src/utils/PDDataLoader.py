@@ -133,24 +133,74 @@ class PDDataLoader:
         return bag_data_dict, patient_ids, fold_groups
 
 
+class PDDataLoaderSimple:
+    def __init__(self, activity_id: List[int], data_path: str, **kwargs):
+        self.data_path = data_path  # 数据文件路径
+        self.activity_id = activity_id  # 指定activity_id
+        self.single_activity = True if len(activity_id) == 1 else False  # 是否单一activity
+        self.exclude_columns = ['PatientID', 'Severity_Level', 'activity_label']
+        self.feature_name = None  # 特征名称
+        self.valid = kwargs.get('valid', False)
+        self.train_data = self.get_train_data()
+        self.test_data = self.get_test_data()
+
+    def get_train_data(self):
+        train_data = pd.read_csv(os.path.join(self.data_path, 'train', f'train_activity_{self.activity_id[0]}.csv'))
+        train_x = train_data.drop(columns=self.exclude_columns)
+        self.feature_name = train_x.columns
+        train_y = train_data['Severity_Level']
+        return train_x.values, train_y.values
+
+    def get_test_data(self):
+        test_x_ls = []
+        test_y_ls = []
+        if self.valid:
+            test_data = pd.read_csv(os.path.join(self.data_path, 'valid', f'valid_activity_{self.activity_id[0]}.csv'))
+        else:
+            test_data = pd.read_csv(os.path.join(self.data_path, 'test', f'test_activity_{self.activity_id[0]}.csv'))
+        # 按 PatientID 进行分组
+        grouped = test_data.groupby('PatientID')
+
+        # 遍历每个患者的数据
+        for patient_id, group in grouped:
+            # 提取每个 PatientID 对应的特征数据
+            test_x = group.drop(columns=self.exclude_columns)
+            test_y = group['Severity_Level'].values  # 标签，通常是一维数组
+
+            # 将特征和标签添加到列表中
+            test_x_ls.append(test_x.values)  # 将 DataFrame 转换为 NumPy 数组并添加到列表
+            test_y_ls.append(test_y[0])  # 标签同样作为 NumPy 数组存储
+
+        return test_x_ls, test_y_ls
+
+
+
 if __name__ == '__main__':
     _back_to_root = "../.."
-    # 以单活动1为例
-    activity_id = [3]
-    data_path = "output/feature_selection"
-    data_name = f"activity_{activity_id[0]}.csv"
-    fold_groups_path = "input/feature_extraction"
-    fold_groups_name = "fold_groups_new_with_combinations.csv"
-    severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+    # doctor
+    _activity_id = [11]
+    _dir_path = os.path.join(_back_to_root, "output/feature_selection/doctor_label")
+    simple_data = PDDataLoaderSimple(_activity_id, _dir_path, valid=True)
+    print('a')
 
-    single_data = PDDataLoader(activity_id, os.path.join(_back_to_root, data_path, data_name),
-                               os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
-                               severity_mapping=severity_mapping)
 
-    # 以活动14 15 16为例
-    comb_activity_id = [14, 15, 16]
-    comb_data_path = "output/activity_combination"
-    comb_data_name = "merged_activities_14_15_16_vertical.csv"
-    comb_data = PDDataLoader(comb_activity_id, os.path.join(_back_to_root, comb_data_path, comb_data_name),
-                             os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
-                             severity_mapping=severity_mapping)
+
+    # # 以单活动1为例
+    # activity_id = [3]
+    # data_path = "output/feature_selection"
+    # data_name = f"activity_{activity_id[0]}.csv"
+    # fold_groups_path = "input/feature_extraction"
+    # fold_groups_name = "fold_groups_new_with_combinations.csv"
+    # severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+    #
+    # single_data = PDDataLoader(activity_id, os.path.join(_back_to_root, data_path, data_name),
+    #                            os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+    #                            severity_mapping=severity_mapping)
+    #
+    # # 以活动14 15 16为例
+    # comb_activity_id = [14, 15, 16]
+    # comb_data_path = "output/activity_combination"
+    # comb_data_name = "merged_activities_14_15_16_vertical.csv"
+    # comb_data = PDDataLoader(comb_activity_id, os.path.join(_back_to_root, comb_data_path, comb_data_name),
+    #                          os.path.join(_back_to_root, fold_groups_path, fold_groups_name),
+    #                          severity_mapping=severity_mapping)

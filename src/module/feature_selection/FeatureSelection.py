@@ -10,19 +10,22 @@ from typing import List
 
 
 class FeatureSelection:
-    def __init__(self, activity_id: int, back_to_root: str, sensors: List, seed: int = 0):
+    def __init__(self, data_dir_path, feature_selection_dir, fold_groups_path, fold_groups_name,
+                 activity_id: int, back_to_root: str, sensors: List, severity_mapping=None, seed: int = 0, ):
         self.activity_id = activity_id
         self.back_to_root = back_to_root
         self.seed = set_seed(seed)
         self.sensors = sensors
-        self.data_dir_path = os.path.join(back_to_root, "output/select_sensors")
-        self.feature_selection_dir = os.path.join(back_to_root, "output/feature_selection")
-        self.fold_groups_path = os.path.join(back_to_root, "input/feature_extraction")
-        self.fold_groups_name = "fold_groups_new_with_combinations.csv"
-        self.severity_mapping = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+        self.data_dir_path = os.path.join(back_to_root, data_dir_path)
+        self.feature_selection_dir = os.path.join(back_to_root, feature_selection_dir)
+        self.fold_groups_path = os.path.join(back_to_root, fold_groups_path)
+        self.fold_groups_name = fold_groups_name
+        self.severity_mapping = severity_mapping
         self.data_loader = self.init_data()
 
     def init_data(self):
+        if self.severity_mapping is None:
+            self.severity_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
         sensors = '_'.join(map(str, self.sensors))
         data_loader = PDDataLoader([self.activity_id], os.path.join(self.data_dir_path, sensors + "_data.csv"),
                                    os.path.join(self.fold_groups_path, self.fold_groups_name),
@@ -37,7 +40,7 @@ class FeatureSelection:
         print(f"Identified {len(single_unique_features)} features with a single unique value.")
         return single_unique_features
 
-    def single_activity_feature_selection(self):
+    def single_activity_feature_selection(self, selection_methods):
         num_feats = [c for c in self.data_loader.feature_name]
         self.data_loader.PD_data[num_feats] = self.data_loader.PD_data[num_feats].astype('float')
         train_X, train_Y, test_X_ls, test_Y_ls, train_ids, test_ids = self.data_loader.create_train_test_split(
@@ -67,7 +70,7 @@ class FeatureSelection:
                                                     cat_threshold=0.9)
         feat_selector.drop_correlated_features()
 
-        selection_methods = ['lgbm', 'xgb', 'rf', 'perimp',  'boruta', 'rfecv']
+        # selection_methods = ['lgbm', 'xgb', 'rf', 'perimp', 'boruta', 'rfecv']
 
         lgbm_hyperparams = {'learning_rate': 0.2, 'max_depth': 3, 'n_estimators': 50, 'num_leaves': 10,
                             'random_state': self.seed, 'n_jobs': -1, 'importance_type': 'gain', 'verbose': -1
@@ -106,8 +109,7 @@ class FeatureSelection:
         ranking_importance_path = os.path.join(self.feature_selection_dir,
                                                f'feature_selection_results_activity_{self.activity_id}.csv')
         ranking_df = pd.read_csv(ranking_importance_path)
-        ranking_columns = ['rfecv_rankings', 'boruta_ranking', 'lgbm_ranking', 'xgb_ranking', 'rf_ranking',
-                           'permutation_ranking']
+        ranking_columns = [col for col in ranking_df.columns if 'ranking' in col.lower() or 'rankings' in col.lower()]
 
         ranking_df['average_ranking'] = ranking_df[ranking_columns].mean(axis=1)
         sorted_features = ranking_df.sort_values(by='average_ranking').index
@@ -183,8 +185,7 @@ class FeatureSelection:
         ranking_importance_path = os.path.join(self.feature_selection_dir,
                                                f'feature_selection_results_activity_{self.activity_id}.csv')
         ranking_df = pd.read_csv(ranking_importance_path)
-        ranking_columns = ['rfecv_rankings', 'boruta_ranking', 'lgbm_ranking', 'xgb_ranking', 'rf_ranking',
-                           'permutation_ranking']
+        ranking_columns = [col for col in ranking_df.columns if 'ranking' in col.lower() or 'rankings' in col.lower()]
 
         ranking_df['average_ranking'] = ranking_df[ranking_columns].mean(axis=1)
         sorted_features = ranking_df.sort_values(by='average_ranking')
@@ -211,10 +212,16 @@ if __name__ == '__main__':
 
     for i in range(1, 16 + 1):
         # instance feature selection
-        fs = FeatureSelection(activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0)
+        fs = FeatureSelection(data_dir_path="output/select_sensors",
+                              feature_selection_dir="output/feature_selection",
+                              fold_groups_path="input/feature_extraction",
+                              fold_groups_name="fold_groups_new_with_combinations.csv",
+                              activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0
+                              )
 
         # single activity feature selection
-        fs.single_activity_feature_selection()
+        selection_methods = ['lgbm', 'xgb', 'rf', 'perimp', 'boruta', 'rfecv']
+        fs.single_activity_feature_selection(selection_methods)
 
         # Analysis the performance for different num of features
         fs.single_activity_best_num_features()

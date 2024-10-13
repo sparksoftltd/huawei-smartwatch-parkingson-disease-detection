@@ -13,19 +13,21 @@ os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线
 
 
 class SeverityAssessment:
-    def __init__(self, back_to_root: str, data_path: str, data_name: str, activity_id: List, classifier: str, **kwargs):
+    def __init__(self, back_to_root: str, data_path: str, data_name: str, fold_groups_path: str, fold_groups_name: str,
+                 activity_id: List, classifier: str, **kwargs):
         self.back_to_root = back_to_root
         self.activity_id = activity_id
         self.classifier = classifier
         self.data_path = data_path
         self.data_name = data_name
-        self.fold_groups_path = "input/feature_extraction"
-        self.fold_groups_name = "fold_groups_new_with_combinations.csv"
+        self.fold_groups_path = fold_groups_path
+        self.fold_groups_name = fold_groups_name
         self.shap_importance = False
         self.data_loader = PDDataLoader(activity_id, os.path.join(self.back_to_root, self.data_path, self.data_name),
                                         os.path.join(self.back_to_root, self.fold_groups_path, self.fold_groups_name))
         self.single_activity = len(activity_id) == 1
         self.roc = kwargs.get('roc', False)
+        self.watch = kwargs.get('watch', False)
         self.model_evaluator = None
         set_seed(0)
 
@@ -37,9 +39,20 @@ class SeverityAssessment:
         with open(os.path.join(self.back_to_root, config_path), 'r') as file:
             return yaml.safe_load(file)
 
+    def load_config_watch(self):
+        if self.single_activity:
+            config_path = f'src/utils/config_watch/activity_{self.activity_id[0]}.yaml'
+        else:
+            config_path = f'src/utils/config_watch/comb_{len(self.activity_id)}.yaml'
+        with open(os.path.join(self.back_to_root, config_path), 'r') as file:
+            return yaml.safe_load(file)
+
     def assessment(self):
         # loading config
-        config = self.load_config()
+        if self.watch is False:
+            config = self.load_config()
+        else:
+            config = self.load_config_watch()
         # print(type(config['mlp_2']['params']['alpha']))
         if self.single_activity:
             assert self.activity_id[0] == config['activity_id'], "error activity_id module"
@@ -82,8 +95,9 @@ def show_activity_shap_importance(severity_assessment: SeverityAssessment):
     severity_assessment.assessment()
 
 
-def save_assessment_result(back_to_root: str, activity_list: list, classifier_list: list):
-    data_path = "output/feature_selection"
+def save_assessment_result(back_to_root: str, data_path: str, activity_list: list, classifier_list: list,
+                           fold_groups_path: str, fold_groups_name: str, **kwargs):
+    # data_path = "output/feature_selection"
     # 用于存储所有结果的列表
     results = []
     # 迭代所有活动 ID 和分类器组合
@@ -91,7 +105,9 @@ def save_assessment_result(back_to_root: str, activity_list: list, classifier_li
         for a in activity_list:
             # 创建 SeverityAssessment 实例并进行评估
             data_name = f"activity_{a}.csv"
-            sa = SeverityAssessment(back_to_root, data_path, data_name, [a], str(c))
+            watch = kwargs.get('watch', False)
+            sa = SeverityAssessment(back_to_root, data_path, data_name, fold_groups_path, fold_groups_name,
+                                    [a], str(c), watch=watch)
             metrics = sa.assessment()
 
             # 将评估结果格式化为 DataFrame 行
@@ -180,7 +196,11 @@ if __name__ == '__main__':
     activity_id = [1]
     _data_path = "output/feature_selection"
     _data_name = f"activity_{activity_id[0]}.csv"
-    sa = SeverityAssessment(_back_to_root, _data_path, _data_name, activity_id, 'xgb')
+    fold_groups_path = "input/feature_extraction"
+    fold_groups_name = "fold_groups_new_with_combinations.csv"
+
+    sa = SeverityAssessment(_back_to_root, _data_path, _data_name, fold_groups_path, fold_groups_name,
+                            activity_id, 'xgb')
     sa.assessment()
 
     # 全活动全算法测试

@@ -38,8 +38,14 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
     a_values, autocorr_values = tremor_utils.get_autocorr_values(z_filter, N, fs)
     peaks4, _ = find_peaks(autocorr_values)
     auto_peak_num = len(peaks4)
-    index_peakmax = np.argsort(autocorr_values[peaks4])[-1]
-    auto_y = autocorr_values[peaks4[index_peakmax]]  # 全局自相关系数
+    if len(peaks4) > 0:
+        index_peakmax = np.argsort(autocorr_values[peaks4])[-1]
+        auto_y = autocorr_values[peaks4[index_peakmax]]  # 全局自相关系数
+    else:
+        # 处理没有峰值的情况
+        index_peakmax = 0
+        auto_y = 0
+
 
     # whole
     peak_num1 = 2
@@ -137,38 +143,56 @@ def featureExtract(x, y, z, ACCW2, windowsize, overlapping, frequency):
     Feat2 = pd.DataFrame(Feat2)
     return Feat2
 
-
-def FeatureExtractWithProcess(pd_num, activity_num, data_path, side, fea_column, window_size, overlapping_rate,
+def FeatureExtractWithProcess(patients_id, activity_id, data_path, side, fea_column, window_size, overlapping_rate,
                               frequency):
     Feature = pd.DataFrame()
-    for pdn in range(1, pd_num + 1, 1):
-        for acn in range(1, activity_num + 1, 1):
+    for pdn in patients_id:
+        for acn in activity_id:
             # select one side data
             filefullpath = data_path + r"person{}/{}_session{}_{}.csv".format(pdn, pdn, acn, side)
             if not os.path.exists(filefullpath):
                 continue
             data = pd.read_csv(filefullpath, header=0)
-            data = data.drop(0)  # 去除第一行描述行
+            if 'Acc_x_100' not in data.columns:
+                data = data.drop(0)  # 去除第一行描述行
 
             # new_column_labels = {"Accel_WR_X_CAL": "wr_acc_x", "Accel_WR_Y_CAL": "wr_acc_y",
             #                      "Accel_WR_Z_CAL": "wr_acc_z", "Gyro_X_CAL": "gyro_x", "Gyro_Y_CAL": "gyro_y",
             #                      "Gyro_Z_CAL": "gyro_z"}
             # ==========新增==================
-            new_column_labels = {"Accel_WR_X_CAL": "wr_acc_x", "Accel_WR_Y_CAL": "wr_acc_y",
-                                 "Accel_WR_Z_CAL": "wr_acc_z", "Gyro_X_CAL": "gyro_x", "Gyro_Y_CAL": "gyro_y",
-                                 "Gyro_Z_CAL": "gyro_z", "Mag_X_CAL": "mag_x", "Mag_Y_CAL": "mag_y",
-                                 "Mag_Z_CAL": "mag_z"}
+            new_column_labels = {# shimmer
+                                 "Accel_WR_X_CAL": "wr_acc_x",
+                                 "Accel_WR_Y_CAL": "wr_acc_y",
+                                 "Accel_WR_Z_CAL": "wr_acc_z",
+                                 "Gyro_X_CAL": "gyro_x",
+                                 "Gyro_Y_CAL": "gyro_y",
+                                 "Gyro_Z_CAL": "gyro_z",
+                                 "Mag_X_CAL": "mag_x",
+                                 "Mag_Y_CAL": "mag_y",
+                                 "Mag_Z_CAL": "mag_z",
+                                # watch
+                                 "Acc_x_100": "wr_acc_x",
+                                 "Acc_y_100": "wr_acc_y",
+                                 "Acc_z_100": "wr_acc_z",
+                                 "Gyro_x_100": "gyro_x",
+                                 "Gyro_y_100": "gyro_y",
+                                 "Gyro_z_100": "gyro_z",
+                                 }
             # ==========新增==================
             data = data.rename(columns=new_column_labels)
             # ==========新增==================
-
-            for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]:
-                data[col] = data[col].astype('float64')
-            for col in ["gyro_x", "gyro_y", "gyro_z"]:
-                data[col] = data[col].astype('float64')
+            if all(col in data.columns for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]):
+                for col in ["wr_acc_x", "wr_acc_y", "wr_acc_z"]:
+                    # data[col] = pd.to_numeric(data[col], errors='coerce')
+                    data[col] = data[col].astype('float64')
+            if all(col in data.columns for col in ["gyro_x", "gyro_y", "gyro_z"]):
+                for col in ["gyro_x", "gyro_y", "gyro_z"]:
+                    # data[col] = pd.to_numeric(data[col], errors='coerce')
+                    data[col] = data[col].astype('float64')
             # ==========新增==================
-            for col in ["mag_x", "mag_y", "mag_z"]:
-                data[col] = data[col].astype('float64')
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                for col in ["mag_x", "mag_y", "mag_z"]:
+                    data[col] = data[col].astype('float64')
             # ==========新增==================
             data["acca"] = np.sqrt(
                 data["wr_acc_x"] * data["wr_acc_x"] + data["wr_acc_y"] * data["wr_acc_y"] + data["wr_acc_z"] * data[
@@ -176,53 +200,55 @@ def FeatureExtractWithProcess(pd_num, activity_num, data_path, side, fea_column,
             data["gyroa"] = np.sqrt(
                 data["gyro_x"] * data["gyro_x"] + data["gyro_y"] * data["gyro_y"] + data["gyro_z"] * data["gyro_z"])   # 创建角速合成轴数据
             # ==========新增==================
-            data["maga"] = np.sqrt(
-                data["mag_x"] * data["mag_x"] + data["mag_y"] * data["mag_y"] + data["mag_z"] * data["mag_z"])
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                data["maga"] = np.sqrt(
+                    data["mag_x"] * data["mag_x"] + data["mag_y"] * data["mag_y"] + data["mag_z"] * data["mag_z"])
             # ==========新增==================
             accdata = data[["wr_acc_x", "wr_acc_y", "wr_acc_z", "acca"]]  # 选择加速度数据
             gyrodata = data[["gyro_x", "gyro_y", "gyro_z", "gyroa"]]   # 选择角速度数据
             # ==========新增==================
-            magdata = data[["mag_x", "mag_y", "mag_z", "maga"]]
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                magdata = data[["mag_x", "mag_y", "mag_z", "maga"]]
             # ==========新增==================
             accdata = accdata.values
             gyrodata = gyrodata.values
             # ==========新增==================
-            magdata = magdata.values
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                magdata = magdata.values
             # ==========新增==================
             # 输入需要为numpy数组
             accdata = StandardScaler().fit_transform(accdata)  # z-score标准化
             gyrodata = StandardScaler().fit_transform(gyrodata)  # z-score标准化
-            magdata = StandardScaler().fit_transform(magdata)  # z-score标准化
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                magdata = StandardScaler().fit_transform(magdata)  # z-score标准化
             databand_acc = accdata.copy()
             databand_gyro = gyrodata.copy()
             # ==========新增==================
-            databand_mag = magdata.copy()
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                databand_mag = magdata.copy()
             # ==========新增==================
             # 问题：滤波代码不清晰？这里的databand_gyro没用上
             for k in range(0, 4):
                 databand_acc[:, k] = tremor_utils.butter_bandpass_filter(accdata[:, k], 0.3, 17, 200, order=3)   # 滤波
-                databand_gyro[:, k] = tremor_utils.butter_bandpass_filter(gyrodata[:, k], 0.3, 17, 200, order=3)  # 滤波
-                databand_mag[:, k] = tremor_utils.butter_bandpass_filter(magdata[:, k], 0.3, 17, 200, order=3)  # 滤波
+                databand_gyro[:, k] = tremor_utils.butter_bandpass_filter(gyrodata[:, k], 0.3, 17, 200, order=3)
+                if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):# 滤波
+                    databand_mag[:, k] = tremor_utils.butter_bandpass_filter(magdata[:, k], 0.3, 17, 200, order=3)  # 滤波
             # 问题：滤波代码不清晰？这里的databand_gyro没用上
             # databand_gyro[:, 2] = tremor_utils.butter_bandpass_filter(accdata[:, 2], 0.3, 3, 200, order=3)  # 两次角速度滤波
             # databand_gyro[:, 2] = tremor_utils.butter_bandpass_filter(gyrodata[:, 2], 0.3, 3, 200, order=3)  # 两次角速度滤波
             databand_acc = pd.DataFrame(databand_acc)
             databand_gyro = pd.DataFrame(databand_gyro)
             # ==========新增==================
-            databand_mag = pd.DataFrame(databand_mag)
-            # ==========新增==================
-
-            # # ==========修改=======================================================
-            # databand = pd.concat([databand_acc, databand_gyro], axis=1)
-            # datax = databand.iloc[:, 0]
-            # datay = databand.iloc[:, 1]
-            # dataz = databand.iloc[:, 2]
-            # acca = databand.iloc[:, 3]
-            # feature = featureExtract(datax, datay, dataz, acca, window_size, overlapping_rate, frequency)
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                databand_mag = pd.DataFrame(databand_mag)
 
             # # ==========修改=======================================================
             feature_ls = []
-            for databand in [databand_acc, databand_gyro, databand_mag]:
+            if all(col in data.columns for col in ["mag_x", "mag_y", "mag_z"]):
+                databand_list = [databand_acc, databand_gyro, databand_mag]
+            else:
+                databand_list = [databand_acc, databand_gyro]
+            for databand in databand_list:
                 datax = databand.iloc[:, 0]
                 datay = databand.iloc[:, 1]
                 dataz = databand.iloc[:, 2]
