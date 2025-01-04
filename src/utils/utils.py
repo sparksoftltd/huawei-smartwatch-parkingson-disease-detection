@@ -46,8 +46,8 @@ def set_seed(seed: int):
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
-    os.environ["OMP_NUM_THREADS"] = "1"  # 控制 OpenMP 的线程数
-    os.environ["MKL_NUM_THREADS"] = "1"  # 控制 MKL（Math Kernel Library）的线程数
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
     return seed
 
 

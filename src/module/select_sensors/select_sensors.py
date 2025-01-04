@@ -2,14 +2,14 @@ import os.path
 import pandas as pd
 
 
-def select_data(column_names, back_to_root, data_dir_path, data_file_name, feature_name_dir_path, feature_name_file_name ):
-    # 读取CSV文件
-    # 组合完整路径
+def select_data(column_names, back_to_root, data_dir_path, data_file_name, feature_name_dir_path,
+                feature_name_file_name, output_path):
+
     data_csv_path = os.path.join(data_dir_path, data_file_name)
     feature_name_csv_path = os.path.join(feature_name_dir_path, feature_name_file_name)
 
     try:
-        # 读取CSV文件
+
         df_read = pd.read_csv(feature_name_csv_path)
         data_read = pd.read_csv(data_csv_path)
     except FileNotFoundError as e:
@@ -38,7 +38,7 @@ def select_data(column_names, back_to_root, data_dir_path, data_file_name, featu
         print(f"Error: {e}")
         return
 
-    output_dir_path = os.path.join(back_to_root, 'output/select_sensors')
+    output_dir_path = os.path.join(back_to_root, output_path)
     output_name = '_'.join(column_names) + '_data.csv'
     output_name_path = os.path.join(output_dir_path, output_name)
 
@@ -54,12 +54,14 @@ if __name__ == '__main__':
     data_file_name = 'wristr_acc_gyro_mag_feature_label.csv'
     feature_name_dir_path = 'input/feature_extraction/raw/'
     feature_name_file_name = 'feature_name.csv'
-    # 只选择acc传感器
+    output_path = 'output/select_sensors'
+
     select_data(
         column_names=['acc'],
         back_to_root=back_to_root,
         data_dir_path=os.path.join(back_to_root, data_dir_path),
         data_file_name=data_file_name,
         feature_name_dir_path=os.path.join(back_to_root, feature_name_dir_path),
-        feature_name_file_name=feature_name_file_name
+        feature_name_file_name=feature_name_file_name,
+        output_path=output_path
     )

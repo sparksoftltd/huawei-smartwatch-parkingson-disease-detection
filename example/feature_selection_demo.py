@@ -16,7 +16,12 @@ back_to_root = project_root
 
 for i in range(1, 16 + 1):
     # instance feature selection
-    fs = FeatureSelection(activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0)
+    fs = FeatureSelection(data_dir_path="output/select_sensors",
+                          feature_selection_dir="output/feature_selection",
+                          fold_groups_path="input/feature_extraction",
+                          fold_groups_name="fold_groups_new_with_combinations.csv",
+                          activity_id=i, back_to_root=back_to_root, sensors=['acc'], seed=0
+                          )
 
     # single activity feature selection
     fs.single_activity_feature_selection()

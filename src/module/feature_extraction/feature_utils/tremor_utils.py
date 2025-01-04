@@ -15,7 +15,7 @@ def get_psd_values(y_values, N, fs):
     return f_values, psd_values
 
 
-def get_fft_values(y_values, N, fs):  # N为采样点数，f_s是采样频率，返回f_values希望的频率区间, fft_values真实幅值
+def get_fft_values(y_values, N, fs):
     f_values = np.linspace(0.0, fs / 2.0, N // 2)
     fft_values_ = fft(y_values)
     fft_values = 2.0 / N * np.abs(fft_values_[0:N // 2])
@@ -59,27 +59,26 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=3):
     y = lfilter(b, a, data)
     return y
 
-def mAmp(data):  #平均幅值
-    L = np.size(data, 0) #计算data的样本数量大小
+def mAmp(data):  #
+    L = np.size(data, 0)
     upper_envolope, low_envolope = envelope_extraction(data)
     mAmp = np.sum(upper_envolope-low_envolope)/L*1.0
     return mAmp
 
-# 输入信号序列即可(list)
+
 def envelope_extraction(signal):
     s = signal.astype(float )
     q_u = np.zeros(s.shape)
     q_l =  np.zeros(s.shape)
 
-    #在插值值前加上第一个值。这将强制模型对上包络和下包络模型使用相同的起点。
     #Prepend the first value of (s) to the interpolating values. This forces the model to use the same starting point for both the upper and lower envelope models.
-    u_x = [0,] #上包络的x序列
-    u_y = [s[0],] #上包络的y序列
+    u_x = [0,]
+    u_y = [s[0],]
 
-    l_x = [0,] #下包络的x序列
-    l_y = [s[0],] #下包络的y序列
+    l_x = [0,]
+    l_y = [s[0],]
 
-    # 检测波峰和波谷，并分别标记它们在u_x,u_y,l_x,l_中的位置。
+
     #Detect peaks and troughs and mark their location in u_x,u_y,l_x,l_y respectively.
 
     for k in range(1,len(s)-1):
@@ -91,24 +90,23 @@ def envelope_extraction(signal):
             l_x.append(k)
             l_y.append(s[k])
 
-    u_x.append(len(s) - 1)  # 上包络与原始数据切点x
-    u_y.append(s[-1])  # 对应的值
+    u_x.append(len(s) - 1)
+    u_y.append(s[-1])
 
-    l_x.append(len(s) - 1)  # 下包络与原始数据切点x
-    l_y.append(s[-1])  # 对应的值
+    l_x.append(len(s) - 1)
+    l_y.append(s[-1])
 
-    # u_x,l_y是不连续的，以下代码把包络转为和输入数据相同大小的数组[便于后续处理，如滤波]
+
     upper_envelope_y = np.zeros(len(signal))
     lower_envelope_y = np.zeros(len(signal))
 
-    upper_envelope_y[0] = u_y[0]  # 边界值处理
+    upper_envelope_y[0] = u_y[0]
     upper_envelope_y[-1] = u_y[-1]
-    lower_envelope_y[0] = l_y[0]  # 边界值处理
+    lower_envelope_y[0] = l_y[0]
     lower_envelope_y[-1] = l_y[-1]
 
-    # 上包络
     last_idx, next_idx = 0, 0
-    k, b = general_equation(u_x[0], u_y[0], u_x[1], u_y[1])  # 初始的k,b
+    k, b = general_equation(u_x[0], u_y[0], u_x[1], u_y[1])
     for e in range(1, len(upper_envelope_y) - 1):
 
         if e not in u_x:
@@ -119,12 +117,12 @@ def envelope_extraction(signal):
             upper_envelope_y[e] = u_y[idx]
             last_idx = u_x.index(e)
             next_idx = u_x.index(e) + 1
-            # 求连续两个点之间的直线方程
+
             k, b = general_equation(u_x[last_idx], u_y[last_idx], u_x[next_idx], u_y[next_idx])
 
-            # 下包络
+
     last_idx, next_idx = 0, 0
-    k, b = general_equation(l_x[0], l_y[0], l_x[1], l_y[1])  # 初始的k,b
+    k, b = general_equation(l_x[0], l_y[0], l_x[1], l_y[1])
     for e in range(1, len(lower_envelope_y) - 1):
 
         if e not in l_x:
@@ -135,10 +133,10 @@ def envelope_extraction(signal):
             lower_envelope_y[e] = l_y[idx]
             last_idx = l_x.index(e)
             next_idx = l_x.index(e) + 1
-            # 求连续两个切点之间的直线方程
+
             k, b = general_equation(l_x[last_idx], l_y[last_idx], l_x[next_idx], l_y[next_idx])
 
-            # 也可以使用三次样条进行拟合
+
     # u_p = interp1d(u_x,u_y, kind = 'cubic',bounds_error = False, fill_value=0.0)
     # l_p = interp1d(l_x,l_y, kind = 'cubic',bounds_error = False, fill_value=0.0)
     # for k in range(0,len(s)):
@@ -148,7 +146,7 @@ def envelope_extraction(signal):
     return upper_envelope_y, lower_envelope_y
 
 def general_equation(first_x, first_y, second_x, second_y):
-    # 斜截式 y = kx + b
+
     A = second_y - first_y
     B = first_x - second_x
     C = second_x * first_y - first_x * second_y
@@ -165,7 +163,7 @@ def fft_peak_xy(data,N,fs,peak_num=2):
     peaks, _ = find_peaks(fft_values, prominence=mph)
     peak_save = fft_values[peaks].argsort()[::-1][:peak_num]
     temp_arr = f_values[peaks[peak_save]]
-    fft_peak_xy = np.pad(temp_arr, (0, peak_num - len(temp_arr)), 'constant', constant_values=0)  ## (0, pad_len), 前面填充0个0，后面填充pad_len个0
+    fft_peak_xy = np.pad(temp_arr, (0, peak_num - len(temp_arr)), 'constant', constant_values=0)
     return fft_peak_xy
 
 
@@ -178,7 +176,7 @@ def psd_peak_xy(data,N,fs,peak_num=2):
     peak_save = psd_values[peaks3].argsort()[::-1][:peak_num]
     temp_arr = psd_values[peaks3[peak_save]]
     psd_peak_xy = np.pad(temp_arr, (0, peak_num - len(temp_arr)), 'constant',
-                              constant_values=0)  ## (0, pad_len), 前面填充0个0，后面填充pad_len个0
+                              constant_values=0)
     return psd_peak_xy
 
 
@@ -191,7 +189,7 @@ def auto_peak_xy(data,N,fs,peak_num=2):
     peak_save = autocorr_values[peaks4].argsort()[::-1][:peak_num]
     temp_arr = a_values[peaks4[peak_save]] + autocorr_values[peaks4[peak_save]]
     autocorr_peak_xy = np.pad(temp_arr, (0, peak_num - len(temp_arr)), 'constant',
-                                   constant_values=0)  ## (0, pad_len), 前面填充0个0，后面填充pad_len个0
+                                   constant_values=0)
     return autocorr_peak_xy
 
 
@@ -233,21 +231,21 @@ def corrcoef(x,y,z,a):
     za_cor = np.corrcoef(z, a)
     return xy_cor[0, 1], xz_cor[0, 1], xa_cor[0, 1], yz_cor[0, 1], ya_cor[0, 1], za_cor[0, 1]
 
-def fft_domain(data,N,fs):  ##频域图峰值细节
+def fft_domain(data,N,fs):
     f_values, fft_values = get_fft_values(data, N, fs)
     damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt = base(fft_values)
     drms = np.sqrt((np.square(fft_values).mean()))  # rms
     return damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt, drms
 
 
-def psd_domain(data,N,fs):  ##频域图峰值细节
+def psd_domain(data,N,fs):
     p_values, psd_values = get_psd_values(data, N, fs)
     damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt = base(psd_values)
     drms = np.sqrt((np.square(psd_values).mean()))  # rms
     return damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt, drms
 
 
-def autocorr_domain(data,N,fs):  ##自相关图峰值细节
+def autocorr_domain(data,N,fs):
     a_values, autocorr_values = get_autocorr_values(data, N, fs)
     damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt = base(autocorr_values)
     drms = np.sqrt((np.square(autocorr_values).mean()))  # rms
@@ -262,11 +260,11 @@ def autocorr_domain(data,N,fs):  ##自相关图峰值细节
     peak_y = autocorr_values[peaks[peak_save]]
     peak_x = np.pad(peak_x, (0, 2 - len(peak_x)), 'constant', constant_values=0)
     peak_y = np.pad(peak_y, (0, 2 - len(peak_y)), 'constant', constant_values=0)
-    # 主峰
+
     peak_main_Y = peak_y[0]
-    # 次峰
+
     peak_sub_Y = peak_y[1]
-    # 波峰因数Crest factor(cft or)
+
     cftor = peak_main_Y / drms * 1.0
     return damp, dmean, dmax, dstd, dvar, dentr, log_energy_value, signal_magnitude_area, interq, skew, kurt, drms,  peak_main_Y,  peak_sub_Y, cftor
 
@@ -276,10 +274,10 @@ def get_psd_values(y_values, N, fs):
 
 def infor(data):
     # a = pd.value_counts(data) / len(data)
-    a = pd.Series(data).value_counts() / len(data)   # OK , xiyang?
+    a = pd.Series(data).value_counts() / len(data)
     return sum(np.log2(a) * a * (-1))
 
-def get_fft_values(y_values, N, fs):  # N为采样点数，f_s是采样频率，返回f_values希望的频率区间, fft_values真实幅值
+def get_fft_values(y_values, N, fs):
     f_values = np.linspace(0.0, fs / 2.0, N // 2)
     fft_values_ = fft(y_values)
     fft_values = 2.0 / N * np.abs(fft_values_[0:N // 2])
@@ -323,7 +321,7 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=3):
     y = lfilter(b, a, data)
     return y
 
-def sampEn(data, N, r): #多窗口样本熵
+def sampEn(data, N, r):
     L = len(data)
     B = 0.0
     A = 0.0

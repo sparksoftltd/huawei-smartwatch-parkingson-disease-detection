@@ -18,7 +18,7 @@ lgbm:
 xgb:
   params:
     objective: "multi:softprob"
-    num_class: 4  # 这个值可以根据具体情况调整
+    num_class: 4
     eval_metric: 'mlogloss'
     verbosity: 0
     seed: 0

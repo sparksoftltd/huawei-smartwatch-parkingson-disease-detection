@@ -10,7 +10,7 @@ sys.path.append(project_src)
 from src.module.severity_aeeseement import save_assessment_result
 
 
-# 全活动全算法测试
+
 classifiers = ['rf', 'xgb', 'lgbm', 'logistic_l1', 'logistic_l2', 'svm_l1', 'svm_l2', 'knn', 'bayes', 'mlp_2',
                'mlp_4', 'mlp_8']
 activity_ids = list(range(1, 17))

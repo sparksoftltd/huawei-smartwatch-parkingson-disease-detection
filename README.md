@@ -1,4 +1,5 @@
-# Fast Homecare Assessment of Parkinson’s Symptoms Using Machine Learning and Single Wrist-Wearable Accelerometers
+# Wearable-based Machine Learning using Combined Daily Activities Combination for Fast-Assessment of Free-living Parkinson’s Disease
+
 
 This project provides a comprehensive workflow for estimating the severity of Parkinson's Disease (PD) using signals from wearable sensors. The project is modular, with each module focusing on different aspects of the data processing and analysis pipeline, from feature extraction to severity assessment.
 
